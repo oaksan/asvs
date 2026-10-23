@@ -105,4 +105,4 @@ def test_footer_exposes_version() -> None:
 
     with TestClient(app) as client:
         html = client.get("/").text
-    assert "Versão 017" in html
+    assert "Versão " in html

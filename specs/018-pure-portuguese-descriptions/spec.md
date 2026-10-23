@@ -76,3 +76,4 @@ para que eu compreenda imediatamente a verificação de segurança sem termos em
 - **SC-001**: 100% dos 8 requisitos (V1.2.1 a V1.5.1) exibem seu texto completo em português tanto na tabela quanto no modal.
 - **SC-002**: Zero ocorrências de `"Texto original (ASVS 5.0, inglês)"` no DOM renderizado.
 - **SC-003**: A suíte de testes automatizados pytest executa sem novas falhas e valida a ausência de texto em inglês residual na camada de apresentação.
+

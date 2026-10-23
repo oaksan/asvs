@@ -57,6 +57,5 @@ def test_app_js_uses_pt_primary_with_original_and_fallback() -> None:
     js = (ROOT / "static" / "app.js").read_text(encoding="utf-8")
     assert "description_pt" in js
     assert 'lang: "pt-BR"' in js
-    assert "Texto original (ASVS 5.0, inglês)" in js
     assert "req_description" in js
     assert "Descrição normativa indisponível" in js

@@ -726,7 +726,4 @@ body {
   #verdicts-table .req-description { color: #000; }
 }
 
-/* Feature 016: texto original (EN) recolhível sob a descrição em português */
-.req-original { margin-top: 6px; font-size: 12px; color: var(--colorNeutralForeground3); }
-.req-original summary { cursor: pointer; }
-.req-original > div { margin-top: 4px; line-height: 1.4; overflow-wrap: anywhere; }
+

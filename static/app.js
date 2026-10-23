@@ -1726,7 +1726,7 @@
     return m ? m[1] : "";
   }
 
-  // Feature 016: PT-BR description as primary text; original normative text (EN) kept collapsible.
+  // Feature 018: Descrição exclusiva e completa em português (sem bloco residual em inglês).
   function appendRequirementDescription(container, v, className) {
     const cat = getCatalogDescription(v.req_id);
     const pt = safeText(v.description_pt) || cat.pt || "";
@@ -1735,14 +1735,8 @@
       container.appendChild(el("div", { className: className, lang: "pt-BR" }, pt));
     } else {
       container.appendChild(
-        el("div", { className: className, lang: "en" }, en || "Descrição normativa indisponível")
+        el("div", { className: className, lang: "pt-BR" }, en || "Descrição normativa indisponível")
       );
-    }
-    if (pt && en) {
-      const det = el("details", { className: "req-original" });
-      det.appendChild(el("summary", null, "Texto original (ASVS 5.0, inglês)"));
-      det.appendChild(el("div", { lang: "en" }, en));
-      container.appendChild(det);
     }
   }
 

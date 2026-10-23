@@ -36,3 +36,4 @@ Esta feature elimina a redundância visual causada pelo bloco expansível "Texto
 | `tests/test_feature_018_pure_portuguese.py` | TDD | Testes de ausência de texto em inglês e presença de pt-BR puro. |
 | `tests/test_ui_presentation.py` | Regressão UI | Atualização da expectativa de versão `?v=018`. |
 | `tests/test_zip_upload_run.py` | Regressão | Atualização da expectativa de versão `?v=018`. |
+

@@ -44,6 +44,6 @@ def test_app_js_renders_title_description_with_fallback() -> None:
     js = (ROOT / "static" / "app.js").read_text(encoding="utf-8")
     assert "friendly_title" in js
     assert "req-description" in js
-    assert 'lang: "en"' in js
+    assert 'lang: "pt-BR"' in js
     assert "/api/requirements/in-scope" in js
     assert "Descrição normativa indisponível" in js

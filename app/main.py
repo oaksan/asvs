@@ -239,6 +239,7 @@ async def get_zap_daemon_status() -> ZAPDaemonStatus:
 @app.get("/api/requirements/in-scope")
 def get_in_scope_requirements(session: Session = Depends(get_session)) -> dict[str, Any]:
     """Return the 8 in-scope ASVS 5.0 V1 L1 requirements."""
+    mapping_cfg = load_req_tool_mapping().get("requirements", {})
     reqs = list(
         session.exec(
             select(Requirement).where(Requirement.in_scope == True).order_by(Requirement.req_id)  # noqa: E712
@@ -254,6 +255,8 @@ def get_in_scope_requirements(session: Session = Depends(get_session)) -> dict[s
                 "section_id": r.section_id,
                 "section_name": r.section_name,
                 "req_description": r.req_description,
+                "friendly_title": mapping_cfg.get(r.req_id, {}).get("friendly_title")
+                or r.section_name,
                 "level": r.level,
                 "in_scope": r.in_scope,
             }

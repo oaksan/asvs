@@ -141,10 +141,11 @@ def test_app_js_has_no_catalog_loaders_and_keeps_requirements_api() -> None:
 
 
 def test_verdicts_table_renders_requirement_description_column() -> None:
-    """Feature 014 (US2/FR-003): description column + fallback exist in table and modal."""
+    """Feature 014 (US2/FR-003) / 015: description shown under each req id + fallback."""
     html = client.get("/").text
     js = client.get("/static/app.js").text
-    assert "O que foi verificado" in html
+    assert "O que foi verificado" not in html  # Feature 015: merged into first column
+    assert "req-description" in js
     assert "req_description" in js
     assert "Descrição normativa indisponível" in js
 
@@ -166,7 +167,7 @@ def test_ui_friendly_verdict_labels_do_not_change_exported_codes() -> None:
     assert "VERDICT_LABELS_PT" in js
     assert "Revisão manual" in js
     assert "tech-details" in css
-    assert "?v=014" in html
+    assert "?v=015" in html
 
 
 # ---------------------------------------------------------------------------

@@ -1707,9 +1707,38 @@
     });
   }
 
+  // Feature 015: cache of in-scope catalog descriptions (fallback when report lacks req_description)
+  const catalogDescriptions = {};
+  let catalogDescriptionsLoaded = false;
+
+  function getCatalogDescription(reqId) {
+    return catalogDescriptions[reqId] || "";
+  }
+
+  async function ensureCatalogDescriptions() {
+    if (catalogDescriptionsLoaded) return;
+    try {
+      const resp = await fetch("/api/requirements/in-scope");
+      if (!resp.ok) return;
+      const data = await resp.json();
+      (data.items || []).forEach((it) => {
+        catalogDescriptions[it.req_id] = it.req_description || "";
+      });
+      catalogDescriptionsLoaded = true;
+    } catch (e) {
+      /* fallback is best-effort */
+    }
+  }
+
   function renderVerdictsTable(report) {
     const tbody = document.getElementById("verdicts-tbody");
     clearChildren(tbody);
+
+    if (!catalogDescriptionsLoaded && (report.verdicts || []).some((x) => !x.req_description)) {
+      ensureCatalogDescriptions().then(() => {
+        if (catalogDescriptionsLoaded && state.currentReport === report) renderVerdictsTable(report);
+      });
+    }
 
     const statusFilter = document.getElementById("filter-verdict-status").value;
     const secFilter = document.getElementById("filter-verdict-section").value;
@@ -1722,7 +1751,7 @@
 
     if (verdicts.length === 0) {
       const tr = el("tr");
-      tr.appendChild(el("td", { colspan: "5" }, "Nenhuma verificação corresponde aos filtros selecionados."));
+      tr.appendChild(el("td", { colspan: "4" }, "Nenhuma verificação corresponde aos filtros selecionados."));
       tbody.appendChild(tr);
       return;
     }
@@ -1746,7 +1775,10 @@
         );
         tdReq.appendChild(inhBadge);
       }
-      tdReq.appendChild(el("div", { style: "font-size:12px; color:var(--colorNeutralForeground3); margin-top:2px;" }, v.section_id + " — " + v.section_name));
+      tdReq.appendChild(el("div", { className: "req-title" }, v.friendly_title || v.section_name || ""));
+      tdReq.appendChild(el("div", { className: "req-section" }, v.section_id + " — " + v.section_name));
+      const descText = v.req_description || getCatalogDescription(v.req_id) || "Descrição normativa indisponível";
+      tdReq.appendChild(el("div", { className: "req-description", lang: "en" }, descText));
       tr.appendChild(tdReq);
 
       // Col 2: Verdict Badge
@@ -1754,12 +1786,7 @@
       tdVerdict.appendChild(createVerdictBadge(v.status));
       tr.appendChild(tdVerdict);
 
-      // Col 3: What was verified (normative description)
-      const tdDesc = el("td");
-      tdDesc.appendChild(el("div", null, v.req_description || "Descrição normativa indisponível"));
-      tr.appendChild(tdDesc);
-
-      // Col 4: Technical details (collapsible; auto-open on print)
+      // Col 3: Technical details (collapsible; auto-open on print)
       const tdTech = el("td");
       const details = el("details", { className: "tech-details" });
       details.appendChild(el("summary", null, "Detalhes técnicos"));
@@ -1786,7 +1813,7 @@
       tdTech.appendChild(details);
       tr.appendChild(tdTech);
 
-      // Col 5: Actions
+      // Col 4: Actions
       const tdActions = el("td", { className: "no-print" });
       const detBtn = el("button", { type: "button", className: "fluent-btn" }, "Ver Detalhes");
       detBtn.addEventListener("click", () => openRequirementModal(v));

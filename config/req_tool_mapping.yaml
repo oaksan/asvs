@@ -11,6 +11,7 @@ requirements:
     section_id: "V1.2"
     section_name: "Injection Prevention"
     title: "Contextual output encoding for HTTP, HTML, and XML"
+    friendly_title: "Codificação de saída por contexto (HTTP, HTML e XML)"
     asvs_4_0_refs:
       - "V5.3.1"
       - "V5.3.3"
@@ -41,6 +42,7 @@ requirements:
     section_id: "V1.2"
     section_name: "Injection Prevention"
     title: "Dynamic URL encoding and safe protocol allowlisting"
+    friendly_title: "Codificação de URLs dinâmicas e protocolos permitidos"
     asvs_4_0_refs:
       - "V5.3.1"
       - "V5.1.5"
@@ -68,6 +70,7 @@ requirements:
     section_id: "V1.2"
     section_name: "Injection Prevention"
     title: "Output encoding/escaping for dynamically built JavaScript and JSON"
+    friendly_title: "Escape em JavaScript e JSON gerados dinamicamente"
     asvs_4_0_refs:
       - "V5.3.2"
     mapping_status: "confirmada"
@@ -93,6 +96,7 @@ requirements:
     section_id: "V1.2"
     section_name: "Injection Prevention"
     title: "Parameterized database queries (SQL/HQL/NoSQL/Cypher)"
+    friendly_title: "Consultas parametrizadas ao banco de dados"
     asvs_4_0_refs:
       - "V5.3.4"
       - "V5.3.5"
@@ -117,6 +121,7 @@ requirements:
     section_id: "V1.2"
     section_name: "Injection Prevention"
     title: "OS command injection prevention and parameterized OS calls"
+    friendly_title: "Prevenção de injeção de comandos do sistema operacional"
     asvs_4_0_refs:
       - "V5.3.8"
     mapping_status: "confirmada"
@@ -141,6 +146,7 @@ requirements:
     section_id: "V1.3"
     section_name: "Sanitization"
     title: "HTML sanitization for untrusted WYSIWYG or rich HTML input"
+    friendly_title: "Sanitização de HTML enviado pelo usuário"
     asvs_4_0_refs:
       - "V5.2.1"
     mapping_status: "confirmada"
@@ -164,6 +170,7 @@ requirements:
     section_id: "V1.3"
     section_name: "Sanitization"
     title: "Avoidance of eval() and dynamic code/expression execution"
+    friendly_title: "Não uso de eval() e execução dinâmica de código"
     asvs_4_0_refs:
       - "V5.2.4"
     mapping_status: "confirmada"
@@ -185,6 +192,7 @@ requirements:
     section_id: "V1.5"
     section_name: "Safe Deserialization"
     title: "Restrictive XML parser configuration and XXE prevention"
+    friendly_title: "Parser XML restritivo (prevenção de XXE)"
     asvs_4_0_refs:
       - "V5.5.2"
     mapping_status: "confirmada"

@@ -708,3 +708,20 @@ body {
   }
 }
 
+
+/* Feature 015: título + descrição normativa sob cada requisito em Resultado por Verificação */
+#verdicts-table td:first-child { min-width: 260px; max-width: 520px; }
+#verdicts-table .req-title { font-weight: 600; margin-top: 2px; }
+#verdicts-table .req-section { font-size: 12px; color: var(--colorNeutralForeground3); margin-top: 2px; }
+#verdicts-table .req-description {
+  font-size: 13px;
+  line-height: 1.45;
+  margin-top: 6px;
+  color: var(--colorNeutralForeground2, inherit);
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+@media print {
+  #verdicts-table td:first-child { max-width: none; }
+  #verdicts-table .req-description { color: #000; }
+}

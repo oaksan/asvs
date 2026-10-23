@@ -54,7 +54,11 @@ from app.agents.orchestrator import (
     OrchestratorInput,
     event_broker,
 )
-from app.agents.reporter_agent import build_full_report_dict, render_static_html_report
+from app.agents.reporter_agent import (
+    build_full_report_dict,
+    build_section_breakdown,
+    render_static_html_report,
+)
 from app.agents.verdict_agent import recalculate_single_requirement_verdict
 from app.core.ai_secrets import AISecretStore
 from app.core.auth import (
@@ -141,7 +145,7 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
     yield
 
 
-APP_UI_VERSION = "019"
+APP_UI_VERSION = "020"
 
 app = FastAPI(
     title="OWASP ASVS 5.0 (V1 L1) Self-Assessment Tool",
@@ -1113,6 +1117,10 @@ def get_run_details(
     run = verify_run_access(run_id, current_user, session)
     findings = list(session.exec(select(Finding).where(Finding.run_id == run.id)).all())
     verdicts = list_run_verdicts(run_id, current_user, session)
+    raw_verdicts = list(
+        session.exec(select(Verdict).where(Verdict.run_id == run.id)).all()
+    )
+    section_breakdown = build_section_breakdown(raw_verdicts)
     return {
         "id": run.id,
         "user_id": run.user_id,
@@ -1144,6 +1152,7 @@ def get_run_details(
             "manual_count": run.manual_count,
         },
         "verdicts": verdicts,
+        "section_breakdown": section_breakdown,
         "findings": [
             {
                 "id": f.id,

@@ -80,3 +80,4 @@ para que eu identifique visualmente o nível de conformidade de cada categoria d
 - **SC-001**: As três barras de "Resultados por Categoria" aparecem devidamente coloridas e preenchidas de acordo com os vereditos da avaliação.
 - **SC-002**: O endpoint `GET /api/runs/{run_id}` contém o nó `section_breakdown` com contagens exatas.
 - **SC-003**: Todos os testes da suíte automatizada passam com sucesso.
+

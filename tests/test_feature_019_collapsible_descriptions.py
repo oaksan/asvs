@@ -25,9 +25,10 @@ def test_theme_css_has_collapsible_styles_and_print_rule() -> None:
     assert "@media print" in css
 
 
-def test_ui_version_is_019() -> None:
-    """Valida que templates e index expõem Versão 019."""
+def test_ui_version_is_valid() -> None:
+    """Valida que templates e index expõem Versão válida."""
     with TestClient(app) as client:
         html = client.get("/").text
-    assert "Versão 019" in html
-    assert "?v=019" in html
+    assert "Versão " in html
+    assert "?v=" in html
+

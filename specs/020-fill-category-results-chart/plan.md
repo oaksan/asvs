@@ -31,3 +31,4 @@ Corrigir a renderização das barras horizontais em "Resultados por Categoria", 
 | `templates/index.html` | Template | Atualização de cache-busting `?v=020`. |
 | `tests/test_feature_020_section_breakdown.py` | TDD | Testes de contrato de `section_breakdown`. |
 | `tests/test_ui_presentation.py` e `tests/test_zip_upload_run.py` | Regressão | Atualização de versão `020`. |
+

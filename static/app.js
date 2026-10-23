@@ -1656,7 +1656,23 @@
     // 2. Section Horizontal Stacked Bar Chart (V1.2, V1.3, V1.5)
     const barsSvg = document.getElementById("section-bars-svg");
     clearChildren(barsSvg);
-    const secBreakdown = report.section_breakdown || {};
+
+    // Feature 020: fallback defensivo caso report.section_breakdown não venha diretamente
+    let secBreakdown = report.section_breakdown;
+    if (!secBreakdown || Object.keys(secBreakdown).length === 0) {
+      secBreakdown = {
+        "V1.2": { PASS: 0, FAIL: 0, INCONCLUSIVE: 0, MANUAL_REQUIRED: 0, total: 5 },
+        "V1.3": { PASS: 0, FAIL: 0, INCONCLUSIVE: 0, MANUAL_REQUIRED: 0, total: 2 },
+        "V1.5": { PASS: 0, FAIL: 0, INCONCLUSIVE: 0, MANUAL_REQUIRED: 0, total: 1 },
+      };
+      (report.verdicts || []).forEach((v) => {
+        const secId = deriveSectionId(v);
+        if (secBreakdown[secId] && secBreakdown[secId][v.status] !== undefined) {
+          secBreakdown[secId][v.status]++;
+        }
+      });
+    }
+
     const sectionsOrder = [
       { id: "V1.2", label: "V1.2 Injection (5)", max: 5 },
       { id: "V1.3", label: "V1.3 Sanitization (2)", max: 2 },
@@ -1674,8 +1690,8 @@
         )
       );
 
-      const barXStart = 165;
-      const maxBarWidth = 230;
+      const barXStart = 150;
+      const maxBarWidth = 215;
       barsSvg.appendChild(
         svgEl("rect", {
           x: barXStart,
@@ -1704,6 +1720,22 @@
           curX += w;
         }
       });
+
+      // Indicador numérico de conformidade à direita da barra
+      const passCount = counts["PASS"] || 0;
+      barsSvg.appendChild(
+        svgEl(
+          "text",
+          {
+            x: barXStart + maxBarWidth + 10,
+            y: y + 16,
+            fill: colors.fg,
+            "font-size": "11",
+            "font-weight": "600",
+          },
+          passCount + " / " + sec.max
+        )
+      );
     });
   }
 

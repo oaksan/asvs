@@ -116,6 +116,7 @@ def build_full_report_dict(session: Session, run_id: int) -> dict[str, Any]:
                 "section_id": req_meta.section_id if req_meta else map_cfg.get("section_id", "V1"),
                 "section_name": req_meta.section_name if req_meta else map_cfg.get("section_name", ""),
                 "req_description": req_meta.req_description if req_meta else "",
+                "description_pt": map_cfg.get("description_pt", ""),
                 "friendly_title": map_cfg.get("friendly_title")
                 or (req_meta.section_name if req_meta else ""),
                 "asvs_4_0_refs": map_cfg.get("asvs_4_0_refs", []),

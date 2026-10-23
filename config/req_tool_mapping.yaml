@@ -12,6 +12,7 @@ requirements:
     section_name: "Injection Prevention"
     title: "Contextual output encoding for HTTP, HTML, and XML"
     friendly_title: "Codificação de saída por contexto (HTTP, HTML e XML)"
+    description_pt: "Verificar se a codificação de saída de respostas HTTP, documentos HTML ou XML é adequada ao contexto, codificando os caracteres relevantes para elementos, atributos e comentários HTML, CSS ou cabeçalhos HTTP, de modo a não alterar a estrutura da mensagem ou do documento."
     asvs_4_0_refs:
       - "V5.3.1"
       - "V5.3.3"
@@ -43,6 +44,7 @@ requirements:
     section_name: "Injection Prevention"
     title: "Dynamic URL encoding and safe protocol allowlisting"
     friendly_title: "Codificação de URLs dinâmicas e protocolos permitidos"
+    description_pt: "Verificar se, ao montar URLs dinamicamente, os dados não confiáveis são codificados conforme o contexto (ex.: codificação de URL ou base64url em parâmetros de consulta ou de caminho) e se apenas protocolos de URL seguros são permitidos (ex.: bloquear javascript: e data:)."
     asvs_4_0_refs:
       - "V5.3.1"
       - "V5.1.5"
@@ -71,6 +73,7 @@ requirements:
     section_name: "Injection Prevention"
     title: "Output encoding/escaping for dynamically built JavaScript and JSON"
     friendly_title: "Escape em JavaScript e JSON gerados dinamicamente"
+    description_pt: "Verificar se codificação ou escape é aplicado ao montar conteúdo JavaScript dinamicamente (incluindo JSON), evitando alterar a estrutura da mensagem ou do documento (injeção de JavaScript e de JSON)."
     asvs_4_0_refs:
       - "V5.3.2"
     mapping_status: "confirmada"
@@ -97,6 +100,7 @@ requirements:
     section_name: "Injection Prevention"
     title: "Parameterized database queries (SQL/HQL/NoSQL/Cypher)"
     friendly_title: "Consultas parametrizadas ao banco de dados"
+    description_pt: "Verificar se seleções de dados e consultas ao banco (ex.: SQL, HQL, NoSQL, Cypher) usam consultas parametrizadas, ORMs ou frameworks de entidades, ou estão protegidas de outro modo contra injeção de SQL e demais injeções em bancos de dados. Também vale para a escrita de stored procedures."
     asvs_4_0_refs:
       - "V5.3.4"
       - "V5.3.5"
@@ -122,6 +126,7 @@ requirements:
     section_name: "Injection Prevention"
     title: "OS command injection prevention and parameterized OS calls"
     friendly_title: "Prevenção de injeção de comandos do sistema operacional"
+    description_pt: "Verificar se a aplicação protege contra injeção de comandos do sistema operacional e se as chamadas ao SO usam consultas parametrizadas ou codificação contextual da linha de comando."
     asvs_4_0_refs:
       - "V5.3.8"
     mapping_status: "confirmada"
@@ -147,6 +152,7 @@ requirements:
     section_name: "Sanitization"
     title: "HTML sanitization for untrusted WYSIWYG or rich HTML input"
     friendly_title: "Sanitização de HTML enviado pelo usuário"
+    description_pt: "Verificar se toda entrada HTML não confiável, vinda de editores WYSIWYG ou similares, é sanitizada com uma biblioteca ou recurso de framework de sanitização de HTML conhecido e seguro."
     asvs_4_0_refs:
       - "V5.2.1"
     mapping_status: "confirmada"
@@ -171,6 +177,7 @@ requirements:
     section_name: "Sanitization"
     title: "Avoidance of eval() and dynamic code/expression execution"
     friendly_title: "Não uso de eval() e execução dinâmica de código"
+    description_pt: "Verificar se a aplicação evita eval() ou outros recursos de execução dinâmica de código, como Spring Expression Language (SpEL). Quando não houver alternativa, toda entrada do usuário incluída deve ser sanitizada antes da execução."
     asvs_4_0_refs:
       - "V5.2.4"
     mapping_status: "confirmada"
@@ -193,6 +200,7 @@ requirements:
     section_name: "Safe Deserialization"
     title: "Restrictive XML parser configuration and XXE prevention"
     friendly_title: "Parser XML restritivo (prevenção de XXE)"
+    description_pt: "Verificar se a aplicação configura os parsers XML de forma restritiva e desabilita recursos inseguros, como a resolução de entidades externas, para prevenir ataques XXE (XML eXternal Entity)."
     asvs_4_0_refs:
       - "V5.5.2"
     mapping_status: "confirmada"

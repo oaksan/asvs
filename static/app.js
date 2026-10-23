@@ -1712,7 +1712,27 @@
   let catalogDescriptionsLoaded = false;
 
   function getCatalogDescription(reqId) {
-    return catalogDescriptions[reqId] || "";
+    return catalogDescriptions[reqId] || { en: "", pt: "" };
+  }
+
+  // Feature 016: PT-BR description as primary text; original normative text (EN) kept collapsible.
+  function appendRequirementDescription(container, v, className) {
+    const cat = getCatalogDescription(v.req_id);
+    const pt = v.description_pt || cat.pt || "";
+    const en = v.req_description || cat.en || "";
+    if (pt) {
+      container.appendChild(el("div", { className: className, lang: "pt-BR" }, pt));
+    } else {
+      container.appendChild(
+        el("div", { className: className, lang: "en" }, en || "Descrição normativa indisponível")
+      );
+    }
+    if (pt && en) {
+      const det = el("details", { className: "req-original" });
+      det.appendChild(el("summary", null, "Texto original (ASVS 5.0, inglês)"));
+      det.appendChild(el("div", { lang: "en" }, en));
+      container.appendChild(det);
+    }
   }
 
   async function ensureCatalogDescriptions() {
@@ -1722,7 +1742,7 @@
       if (!resp.ok) return;
       const data = await resp.json();
       (data.items || []).forEach((it) => {
-        catalogDescriptions[it.req_id] = it.req_description || "";
+        catalogDescriptions[it.req_id] = { en: it.req_description || "", pt: it.description_pt || "" };
       });
       catalogDescriptionsLoaded = true;
     } catch (e) {
@@ -1734,7 +1754,7 @@
     const tbody = document.getElementById("verdicts-tbody");
     clearChildren(tbody);
 
-    if (!catalogDescriptionsLoaded && (report.verdicts || []).some((x) => !x.req_description)) {
+    if (!catalogDescriptionsLoaded && (report.verdicts || []).some((x) => !x.description_pt || !x.req_description)) {
       ensureCatalogDescriptions().then(() => {
         if (catalogDescriptionsLoaded && state.currentReport === report) renderVerdictsTable(report);
       });
@@ -1777,8 +1797,7 @@
       }
       tdReq.appendChild(el("div", { className: "req-title" }, v.friendly_title || v.section_name || ""));
       tdReq.appendChild(el("div", { className: "req-section" }, v.section_id + " — " + v.section_name));
-      const descText = v.req_description || getCatalogDescription(v.req_id) || "Descrição normativa indisponível";
-      tdReq.appendChild(el("div", { className: "req-description", lang: "en" }, descText));
+      appendRequirementDescription(tdReq, v, "req-description");
       tr.appendChild(tdReq);
 
       // Col 2: Verdict Badge
@@ -1970,7 +1989,9 @@
     body.appendChild(headerRow);
 
     body.appendChild(el("div", { style: "font-weight:600; margin-top:4px;" }, "O que foi verificado:"));
-    body.appendChild(el("p", { style: "margin:0 0 8px 0; font-size:13px;" }, v.req_description || "Descrição normativa indisponível"));
+    const descBox = el("div", { style: "margin:0 0 8px 0; font-size:13px;" });
+    appendRequirementDescription(descBox, v, "req-description");
+    body.appendChild(descBox);
 
     // AI Evaluation Special Card if ai_evaluator is used or mentioned
     const isAiUsed =

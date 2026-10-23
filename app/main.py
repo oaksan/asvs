@@ -255,6 +255,7 @@ def get_in_scope_requirements(session: Session = Depends(get_session)) -> dict[s
                 "section_id": r.section_id,
                 "section_name": r.section_name,
                 "req_description": r.req_description,
+                "description_pt": mapping_cfg.get(r.req_id, {}).get("description_pt", ""),
                 "friendly_title": mapping_cfg.get(r.req_id, {}).get("friendly_title")
                 or r.section_name,
                 "level": r.level,

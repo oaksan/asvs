@@ -547,4 +547,11 @@ def test_ui_assets_feature_021():
     assert "reset-password" in js
     assert "openResetUserModal" in js
 
+    # DOM hierarchy: panel-users must be closed and outside panel-ai-config
+    ai_idx = html.find('id="panel-ai-config"')
+    users_idx = html.find('id="panel-users"')
+    assert ai_idx != -1 and users_idx != -1
+    closing_section = html.find("</section>", ai_idx)
+    assert closing_section != -1 and closing_section < users_idx
+
 

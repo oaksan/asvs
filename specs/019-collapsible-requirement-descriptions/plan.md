@@ -37,3 +37,4 @@ Implementar um container expansível `<details class="req-desc-details">` com su
 | `templates/index.html` | Template | Atualização de versão e cache-busting `?v=019`. |
 | `tests/test_feature_019_collapsible_descriptions.py` | TDD | Testes específicos da Feature 019. |
 | `tests/test_ui_presentation.py` e `tests/test_zip_upload_run.py` | Regressão | Atualização de expectativas de versão para `019`. |
+

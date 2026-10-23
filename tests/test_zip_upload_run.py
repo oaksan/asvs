@@ -169,11 +169,11 @@ def test_validation_error_422_returns_string_detail_never_object_list(db_session
 
 
 def test_static_assets_and_index_have_cache_busting_and_no_cache_headers():
-    """GET / includes ?v=018 cache-busting and /static/app.js returns Cache-Control: no-cache."""
+    """GET / includes ?v=019 cache-busting and /static/app.js returns Cache-Control: no-cache."""
     client = TestClient(app)
     res_index = client.get("/")
     assert res_index.status_code == 200
-    assert "/static/app.js?v=018" in res_index.text
+    assert "/static/app.js?v=019" in res_index.text
 
     res_js = client.get("/static/app.js")
     assert res_js.status_code == 200

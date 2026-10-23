@@ -726,4 +726,52 @@ body {
   #verdicts-table .req-description { color: #000; }
 }
 
+/* Feature 019: Bloco recolhível para descrição completa dos requisitos */
+.req-desc-details {
+  margin-top: 6px;
+  font-size: 13px;
+}
+.req-desc-summary {
+  cursor: pointer;
+  font-weight: 500;
+  color: var(--colorBrandForegroundLink, #0f6cbd);
+  user-select: none;
+  display: inline-block;
+  padding: 2px 0;
+}
+.req-desc-summary:hover {
+  text-decoration: underline;
+}
+.req-desc-summary:focus-visible {
+  outline: 2px solid var(--colorStrokeFocus2, #005fb8);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+.req-description-body {
+  margin-top: 6px;
+  padding: 8px 10px;
+  background: var(--colorNeutralBackground3, #f5f5f5);
+  border-left: 3px solid var(--colorBrandForegroundLink, #0f6cbd);
+  border-radius: 4px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--colorNeutralForeground1, inherit);
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+@media print {
+  .req-desc-details {
+    display: block !important;
+  }
+  .req-desc-details .req-desc-summary {
+    display: none;
+  }
+  .req-description-body {
+    display: block !important;
+    background: transparent !important;
+    border-left: 2px solid #333 !important;
+    color: #000 !important;
+  }
+}
+
 

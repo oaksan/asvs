@@ -85,3 +85,4 @@ para que o documento contenha o registro completo das verificações sem exigir 
 - **SC-001**: Todos os 8 requisitos (V1.2.1 a V1.5.1) possuem bloco recolhível funcional na tabela "Resultado por Verificação".
 - **SC-002**: A altura padrão das linhas da tabela é reduzida, melhorando a escaneabilidade do dashboard.
 - **SC-003**: Todos os testes automatizados da suíte executam com sucesso.
+

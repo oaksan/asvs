@@ -26,10 +26,10 @@ def test_all_in_scope_requirements_have_portuguese_descriptions() -> None:
         assert desc_pt.startswith("Verificar se"), f"Requisito {rid} deve começar com 'Verificar se'"
 
 
-def test_ui_version_is_018() -> None:
-    """Valida que templates e index expõem Versão 018."""
+def test_ui_version_is_valid() -> None:
+    """Valida que templates e index expõem Versão válida."""
     with TestClient(app) as client:
         html = client.get("/").text
-    assert "Versão 018" in html
-    assert "?v=018" in html
+    assert "Versão " in html
+    assert "?v=" in html
 

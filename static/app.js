@@ -1726,17 +1726,18 @@
     return m ? m[1] : "";
   }
 
-  // Feature 018: Descrição exclusiva e completa em português (sem bloco residual em inglês).
-  function appendRequirementDescription(container, v, className) {
+  // Feature 019: Descrição completa em bloco recolhível para V1.2.1 a V1.5.1.
+  function appendRequirementDescription(container, v, className, isCollapsible = true) {
     const cat = getCatalogDescription(v.req_id);
-    const pt = safeText(v.description_pt) || cat.pt || "";
-    const en = safeText(v.req_description) || cat.en || "";
-    if (pt) {
-      container.appendChild(el("div", { className: className, lang: "pt-BR" }, pt));
+    const text = safeText(v.description_pt) || cat.pt || safeText(v.req_description) || cat.en || "Descrição normativa indisponível";
+    if (isCollapsible) {
+      const details = el("details", { className: "req-desc-details" });
+      const summary = el("summary", { className: "req-desc-summary" }, "Descrição completa");
+      details.appendChild(summary);
+      details.appendChild(el("div", { className: "req-description-body " + (className || ""), lang: "pt-BR" }, text));
+      container.appendChild(details);
     } else {
-      container.appendChild(
-        el("div", { className: className, lang: "pt-BR" }, en || "Descrição normativa indisponível")
-      );
+      container.appendChild(el("div", { className: className, lang: "pt-BR" }, text));
     }
   }
 
@@ -1997,7 +1998,7 @@
 
     body.appendChild(el("div", { style: "font-weight:600; margin-top:4px;" }, "O que foi verificado:"));
     const descBox = el("div", { style: "margin:0 0 8px 0; font-size:13px;" });
-    appendRequirementDescription(descBox, v, "req-description");
+    appendRequirementDescription(descBox, v, "req-description", false);
     body.appendChild(descBox);
 
     // AI Evaluation Special Card if ai_evaluator is used or mentioned

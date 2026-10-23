@@ -1,0 +1,44 @@
+rules:
+  # =========================================================================
+  # V1.5.1 - Restrictive XML Parser Configuration / XXE Prevention
+  # =========================================================================
+  - id: v1-5-1-xml-external-entities-enabled
+    message: "ASVS V1.5.1: Parser XML configurado com resolve_entities=True, load_dtd=True ou dtd_validation=True (vulnerável a XXE)."
+    severity: ERROR
+    languages: [python]
+    metadata:
+      req_id: "V1.5.1"
+      confidence: "HIGH"
+    pattern-either:
+      - pattern: lxml.etree.XMLParser(..., resolve_entities=True, ...)
+      - pattern: etree.XMLParser(..., resolve_entities=True, ...)
+      - pattern: XMLParser(..., resolve_entities=True, ...)
+      - pattern: lxml.etree.XMLParser(..., load_dtd=True, ...)
+      - pattern: etree.XMLParser(..., load_dtd=True, ...)
+
+  - id: v1-5-1-stdlib-xml-unsafe-parser
+    message: "ASVS V1.5.1: Uso de xml.etree.ElementTree ou xml.dom.minidom padrão sem defusedxml para parsear XML não confiável."
+    severity: WARNING
+    languages: [python]
+    metadata:
+      req_id: "V1.5.1"
+      confidence: "HIGH"
+    pattern-either:
+      - pattern: xml.etree.ElementTree.fromstring($XML)
+      - pattern: ET.fromstring($XML)
+      - pattern: xml.dom.minidom.parseString($XML)
+      - pattern: minidom.parseString($XML)
+
+  - id: v1-5-1-js-xxe-libxml-noent
+    message: "ASVS V1.5.1: Parser XML JavaScript/TypeScript (libxmljs) configurado com noent: true permite expansão de entidades externas (XXE)."
+    severity: ERROR
+    languages: [javascript, typescript]
+    metadata:
+      req_id: "V1.5.1"
+      confidence: "HIGH"
+    pattern-either:
+      - pattern: "$LIBXML.parseXml($XML, {..., noent: true, ...})"
+      - pattern: "$LIBXML.parseXmlString($XML, {..., noent: true, ...})"
+      - pattern: "parseXml($XML, {..., noent: true, ...})"
+      - pattern: "parseXmlString($XML, {..., noent: true, ...})"
+

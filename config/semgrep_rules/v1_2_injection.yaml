@@ -1,0 +1,174 @@
+rules:
+  # =========================================================================
+  # V1.2.1 - Contextual Output Encoding (HTML / HTTP / XML)
+  # =========================================================================
+  - id: v1-2-1-jinja2-autoescape-off
+    message: "ASVS V1.2.1: Jinja2 Environment/Template configurado sem autoescape explícito ou com autoescape=False."
+    severity: ERROR
+    languages: [python]
+    metadata:
+      req_id: "V1.2.1"
+      confidence: "HIGH"
+    pattern-either:
+      - pattern: jinja2.Environment(..., autoescape=False, ...)
+      - pattern: Environment(..., autoescape=False, ...)
+      - pattern: jinja2.Template($SRC)
+
+  - id: v1-2-1-markupsafe-safe-filter
+    message: "ASVS V1.2.1: Uso de Markup() com interpolação/concatenação ou bypass de encoding HTML."
+    severity: ERROR
+    languages: [python]
+    metadata:
+      req_id: "V1.2.1"
+      confidence: "HIGH"
+    pattern-either:
+      - pattern: Markup(f"...")
+      - pattern: markupsafe.Markup(f"...")
+      - pattern: Markup($A + $B)
+      - pattern: markupsafe.Markup($A + $B)
+
+  - id: v1-2-1-dom-innerhtml-sink
+    message: "ASVS V1.2.1: Atribuição direta a innerHTML ou outerHTML sem codificação contextual."
+    severity: ERROR
+    languages: [javascript, typescript]
+    metadata:
+      req_id: "V1.2.1"
+      confidence: "HIGH"
+    pattern-either:
+      - pattern: $EL.innerHTML = $VAL
+      - pattern: $EL.outerHTML = $VAL
+      - pattern: document.write($VAL)
+
+  - id: v1-2-1-html-response-unencoded
+    message: "ASVS V1.2.1: Construção de HTMLResponse com f-string ou concatenação direta sem escape contextual."
+    severity: ERROR
+    languages: [python]
+    metadata:
+      req_id: "V1.2.1"
+      confidence: "HIGH"
+    pattern-either:
+      - pattern: HTMLResponse(f"...")
+      - pattern: HTMLResponse(content=f"...")
+      - pattern: HTMLResponse($A + $B)
+
+  # =========================================================================
+  # V1.2.2 - Dynamic URL Building & Safe Protocols (javascript: / data:)
+  # =========================================================================
+  - id: v1-2-2-unsafe-url-scheme
+    message: "ASVS V1.2.2: Construção dinâmica de URL sem bloqueio de esquemas perigosos (javascript: ou data:) ou uso direto de esquema inseguro."
+    severity: ERROR
+    languages: [python]
+    metadata:
+      req_id: "V1.2.2"
+      confidence: "HIGH"
+    pattern-either:
+      - pattern: RedirectResponse(url=$URL)
+      - pattern: RedirectResponse($URL)
+      - pattern: unsafe_redirect($URL)
+
+  - id: v1-2-2-open-redirect-unencoded-url
+    message: "ASVS V1.2.2: Construção de URL por f-string com parâmetro de query não codificado contextualmente (urllib.parse.quote/urlencode)."
+    severity: WARNING
+    languages: [python]
+    metadata:
+      req_id: "V1.2.2"
+      confidence: "MEDIUM"
+    pattern-either:
+      - pattern: build_unencoded_url($BASE, $PARAM)
+      - pattern: f"http://{$HOST}/redirect?next={$TARGET}"
+      - pattern: f"https://{$HOST}/redirect?next={$TARGET}"
+
+  # =========================================================================
+  # V1.2.3 - Dynamic JavaScript / JSON Output Encoding
+  # =========================================================================
+  - id: v1-2-3-inline-script-interpolation
+    message: "ASVS V1.2.3: Interpolação direta de variável em bloco <script> sem codificação/escape para contexto JavaScript/JSON."
+    severity: ERROR
+    languages: [python]
+    metadata:
+      req_id: "V1.2.3"
+      confidence: "HIGH"
+    pattern-either:
+      - pattern: render_inline_script($DATA)
+      - pattern: f"<script>...{$DATA}...</script>"
+
+  - id: v1-2-3-unsafe-json-script-dump
+    message: "ASVS V1.2.3: Serialização JSON inserida diretamente em HTML/Script sem escape de caracteres '</script>'."
+    severity: WARNING
+    languages: [python]
+    metadata:
+      req_id: "V1.2.3"
+      confidence: "MEDIUM"
+    pattern: unsafe_json_inline($OBJ)
+
+  # =========================================================================
+  # V1.2.4 - Parameterized Database Queries (SQL / NoSQL / Cypher)
+  # =========================================================================
+  - id: v1-2-4-sql-string-concatenation
+    message: "ASVS V1.2.4: Consulta SQL construída por f-string, concatenação ou formatação em vez de query parametrizada."
+    severity: ERROR
+    languages: [python]
+    metadata:
+      req_id: "V1.2.4"
+      confidence: "HIGH"
+    pattern-either:
+      - pattern: $CURSOR.execute(f"...")
+      - pattern: $CURSOR.execute($SQL + $VAR)
+      - pattern: $CURSOR.execute("..." % $VAR)
+      - pattern: $CURSOR.execute("...".format(...))
+      - pattern: $CONN.execute(f"...")
+
+  - id: v1-2-4-sqlalchemy-raw-text-concat
+    message: "ASVS V1.2.4: Uso de sqlalchemy.text() com f-string ou concatenação direta (vulnerável a SQL Injection)."
+    severity: ERROR
+    languages: [python]
+    metadata:
+      req_id: "V1.2.4"
+      confidence: "HIGH"
+    pattern-either:
+      - pattern: text(f"...")
+      - pattern: sqlalchemy.text(f"...")
+      - pattern: text($A + $B)
+
+  # =========================================================================
+  # V1.2.5 - OS Command Injection Prevention
+  # =========================================================================
+  - id: v1-2-5-subprocess-shell-true
+    message: "ASVS V1.2.5: Chamada subprocess com shell=True permite injeção de comandos de sistema operacional."
+    severity: ERROR
+    languages: [python]
+    metadata:
+      req_id: "V1.2.5"
+      confidence: "HIGH"
+    pattern-either:
+      - pattern: subprocess.run(..., shell=True, ...)
+      - pattern: subprocess.Popen(..., shell=True, ...)
+      - pattern: subprocess.call(..., shell=True, ...)
+      - pattern: subprocess.check_output(..., shell=True, ...)
+
+  - id: v1-2-5-os-system-execution
+    message: "ASVS V1.2.5: Uso de os.system() ou os.popen() executa comandos via shell sem parametrização."
+    severity: ERROR
+    languages: [python]
+    metadata:
+      req_id: "V1.2.5"
+      confidence: "HIGH"
+    pattern-either:
+      - pattern: os.system($CMD)
+      - pattern: os.popen($CMD)
+
+  - id: v1-2-5-js-child-process-exec
+    message: "ASVS V1.2.5: Execução de comando de sistema operacional via child_process (exec/execSync/spawn com shell) em JavaScript/TypeScript."
+    severity: ERROR
+    languages: [javascript, typescript]
+    metadata:
+      req_id: "V1.2.5"
+      confidence: "HIGH"
+    pattern-either:
+      - pattern: exec($CMD, ...)
+      - pattern: execSync($CMD, ...)
+      - pattern: $CP.exec($CMD, ...)
+      - pattern: $CP.execSync($CMD, ...)
+      - pattern: "spawn($CMD, ..., {..., shell: true, ...})"
+      - pattern: "$CP.spawn($CMD, ..., {..., shell: true, ...})"
+

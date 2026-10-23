@@ -1,0 +1,222 @@
+openapi: 3.1.0
+info:
+  title: ASVS Self-Assessment Tool - Authentication & User Management API
+  version: 1.0.0
+  description: Endpoints for local user authentication, RBAC session control, user management, and encrypted user AI configuration.
+
+paths:
+  /api/auth/login:
+    post:
+      summary: Authenticate user and issue secure session cookie
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login successful, session cookie set
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+                example: asvs_session=abc123token...; HttpOnly; SameSite=Lax; Path=/
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '401':
+          description: Invalid username or password
+        '429':
+          description: Rate limit exceeded (too many failed attempts)
+
+  /api/auth/logout:
+    post:
+      summary: Terminate session and purge active in-memory AI credentials
+      responses:
+        '200':
+          description: Logout successful, session cookie invalidated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                  message:
+                    type: string
+
+  /api/auth/me:
+    get:
+      summary: Retrieve current authenticated user profile
+      responses:
+        '200':
+          description: Profile retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '401':
+          description: Not authenticated
+
+  /api/auth/change-password:
+    post:
+      summary: Change password for the current user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangePasswordRequest'
+      responses:
+        '200':
+          description: Password updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                  message:
+                    type: string
+        '400':
+          description: Invalid password or validation error
+        '401':
+          description: Incorrect current password
+
+  /api/users:
+    get:
+      summary: List all users (Admin only)
+      responses:
+        '200':
+          description: List of user accounts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UserResponse'
+        '403':
+          description: Forbidden (Requires admin role)
+    post:
+      summary: Create new local user (Admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserCreateRequest'
+      responses:
+        '201':
+          description: User created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '400':
+          description: Username already exists or validation error
+        '403':
+          description: Forbidden (Requires admin role)
+
+components:
+  schemas:
+    LoginRequest:
+      type: object
+      required:
+        - username
+        - password
+      properties:
+        username:
+          type: string
+          minLength: 1
+          maxLength: 50
+        password:
+          type: string
+          minLength: 1
+          maxLength: 128
+
+    LoginResponse:
+      type: object
+      required:
+        - ok
+        - user_id
+        - username
+        - role
+        - must_change_password
+        - ai_configured
+      properties:
+        ok:
+          type: boolean
+        user_id:
+          type: integer
+        username:
+          type: string
+        role:
+          type: string
+          enum: [admin, user]
+        must_change_password:
+          type: boolean
+        ai_configured:
+          type: boolean
+        ai_model_name:
+          type: string
+          nullable: true
+
+    UserCreateRequest:
+      type: object
+      required:
+        - username
+        - password
+        - role
+      properties:
+        username:
+          type: string
+          minLength: 3
+          maxLength: 50
+        password:
+          type: string
+          minLength: 8
+          maxLength: 128
+        role:
+          type: string
+          enum: [admin, user]
+
+    UserResponse:
+      type: object
+      required:
+        - id
+        - username
+        - role
+        - must_change_password
+        - is_active
+        - created_at
+      properties:
+        id:
+          type: integer
+        username:
+          type: string
+        role:
+          type: string
+        must_change_password:
+          type: boolean
+        is_active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+
+    ChangePasswordRequest:
+      type: object
+      required:
+        - current_password
+        - new_password
+      properties:
+        current_password:
+          type: string
+        new_password:
+          type: string
+          minLength: 8
+          maxLength: 128
+

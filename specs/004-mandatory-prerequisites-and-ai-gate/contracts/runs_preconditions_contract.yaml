@@ -1,0 +1,80 @@
+openapi: 3.0.3
+info:
+  title: ASVS Pipeline Launch Preconditions API
+  version: 1.3.0
+  description: Endpoints and guardrail contracts for launching assessment runs under strict DAST and AI prerequisites.
+paths:
+  /api/runs:
+    post:
+      summary: Iniciar uma nova execução de avaliação ASVS V1 L1
+      description: |
+        Dispara uma nova Run após validação estrita de dois pré-requisitos inegociáveis:
+        1. Consentimento DAST universal (zap_authorized == true);
+        2. Provedor de IA previamente configurado em memória (AISecretStore.is_configured() == true).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - source_type
+                - zap_authorized
+              properties:
+                source_type:
+                  type: string
+                  enum: [workspace_path, zip_upload]
+                  default: workspace_path
+                workspace_subpath:
+                  type: string
+                  default: app
+                zip_filename:
+                  type: string
+                  nullable: true
+                target_url:
+                  type: string
+                  nullable: true
+                zap_authorized:
+                  type: boolean
+                  description: Obrigatório true para qualquer avaliação.
+                zap_mode:
+                  type: string
+                  enum: [baseline, active]
+                  default: baseline
+      responses:
+        '202':
+          description: Execução aceita e disparada em background (ou concluída se sync=true).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  run_id:
+                    type: integer
+                  status:
+                    type: string
+                  message:
+                    type: string
+        '400':
+          description: Erro nos parâmetros ou caminho fora do workspace (Path Traversal).
+        '403':
+          description: Bloqueio de Guardrail DAST (zap_authorized != true) ou URL fora da allowlist.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  detail:
+                    type: string
+                    example: "Guardrail DAST acionado: É obrigatório declarar autorização explícita para testes dinâmicos antes de iniciar qualquer avaliação."
+        '412':
+          description: Pré-requisito de IA não atendido (AISecretStore não configurado).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  detail:
+                    type: string
+                    example: "Pré-requisito de IA não atendido: O provedor de IA generativa deve ser configurado (modelo e API Key em memória) antes de iniciar a avaliação."
+

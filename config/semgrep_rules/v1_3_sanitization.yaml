@@ -1,0 +1,51 @@
+rules:
+  # =========================================================================
+  # V1.3.1 - HTML Sanitization for WYSIWYG / Rich HTML Input
+  # =========================================================================
+  - id: v1-3-1-unsanitized-rich-html
+    message: "ASVS V1.3.1: Entrada HTML de editor rico/WYSIWYG armazenada ou renderizada sem biblioteca de sanitização segura (ex.: bleach.clean)."
+    severity: ERROR
+    languages: [python]
+    metadata:
+      req_id: "V1.3.1"
+      confidence: "HIGH"
+    pattern-either:
+      - pattern: render_unsanitized_wysiwyg($HTML)
+      - pattern: save_raw_wysiwyg_html($HTML)
+
+  - id: v1-3-1-js-angular-unsanitized-html
+    message: "ASVS V1.3.1: Uso de bypassSecurityTrustHtml desativa a sanitização nativa de HTML rico (risco de XSS em conteúdo rico/WYSIWYG)."
+    severity: ERROR
+    languages: [javascript, typescript]
+    metadata:
+      req_id: "V1.3.1"
+      confidence: "HIGH"
+    pattern-either:
+      - pattern: $SANITIZER.bypassSecurityTrustHtml($HTML)
+      - pattern: bypassSecurityTrustHtml($HTML)
+
+  # =========================================================================
+  # V1.3.2 - Avoid eval() and Dynamic Code Execution
+  # =========================================================================
+  - id: v1-3-2-python-eval-exec
+    message: "ASVS V1.3.2: Uso de eval() ou exec() para execução dinâmica de código Python é proibido."
+    severity: ERROR
+    languages: [python]
+    metadata:
+      req_id: "V1.3.2"
+      confidence: "HIGH"
+    pattern-either:
+      - pattern: eval($EXPR, ...)
+      - pattern: exec($CODE, ...)
+
+  - id: v1-3-2-js-eval-function
+    message: "ASVS V1.3.2: Uso de eval() ou new Function() em JavaScript permite execução dinâmica de código."
+    severity: ERROR
+    languages: [javascript, typescript]
+    metadata:
+      req_id: "V1.3.2"
+      confidence: "HIGH"
+    pattern-either:
+      - pattern: eval($EXPR)
+      - pattern: new Function(...)
+

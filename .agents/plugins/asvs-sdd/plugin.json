@@ -1,0 +1,12 @@
+{
+  "name": "asvs-sdd",
+  "displayName": "ASVS SDD Multi-Agent Hub",
+  "description": "Equipe de 11 agentes especialistas e skills dedicadas à execução segura e auditável do Spec-Driven Development no projeto ASVS.",
+  "version": "1.0.0",
+  "suggestedPrompts": [
+    "Executar ciclo completo SDD para o requisito ASVS",
+    "Auditar guardrails ACI no código recente",
+    "Mapear novos requisitos ASVS 5.0 no catálogo"
+  ]
+}
+

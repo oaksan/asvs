@@ -1,0 +1,98 @@
+{
+  "schema_version": "1.0",
+  "generated_at": "2026-10-14T21:37:00Z",
+  "comment": "Registro e auditoria de procedência de skills do repositório skills.sh",
+  "skills": [
+    {
+      "name": "spec-driven-development",
+      "source": "addyosmani/agent-skills/spec-driven-development",
+      "installs": 55575
+    },
+    {
+      "name": "grill-with-docs",
+      "source": "mattpocock/skills/grill-with-docs",
+      "installs": 1200000
+    },
+    {
+      "name": "security-threat-model",
+      "source": "openai/skills/security-threat-model",
+      "installs": 7547
+    },
+    {
+      "name": "speckit-analyze",
+      "source": "dceoy/speckit-agent-skills/speckit-analyze",
+      "installs": 1489
+    },
+    {
+      "name": "fastapi",
+      "source": "fastapi/fastapi/fastapi",
+      "installs": 12286
+    },
+    {
+      "name": "sqlmodel",
+      "source": "fastapi/sqlmodel/sqlmodel",
+      "installs": 127
+    },
+    {
+      "name": "pydantic",
+      "source": "pydantic/skills/pydantic",
+      "installs": 1901
+    },
+    {
+      "name": "tdd",
+      "source": "mattpocock/skills/tdd",
+      "installs": 1080919
+    },
+    {
+      "name": "pytest-coverage",
+      "source": "github/awesome-copilot/pytest-coverage",
+      "installs": 12767
+    },
+    {
+      "name": "token-lookup",
+      "source": "microsoft/fluentui/token-lookup",
+      "installs": 11
+    },
+    {
+      "name": "v9-component",
+      "source": "microsoft/fluentui/v9-component",
+      "installs": 10
+    },
+    {
+      "name": "semgrep-rule-creator",
+      "source": "trailofbits/skills/semgrep-rule-creator",
+      "installs": 5473
+    },
+    {
+      "name": "semgrep",
+      "source": "trailofbits/skills/semgrep",
+      "installs": 8987
+    },
+    {
+      "name": "code-security",
+      "source": "semgrep/skills/code-security",
+      "installs": 2453
+    },
+    {
+      "name": "security-review",
+      "source": "getsentry/skills/security-review",
+      "installs": 19929
+    },
+    {
+      "name": "llm-security",
+      "source": "semgrep/skills/llm-security",
+      "installs": 1512
+    },
+    {
+      "name": "secrets-management",
+      "source": "wshobson/agents/secrets-management",
+      "installs": 12828
+    },
+    {
+      "name": "llm-prompt-injection",
+      "source": "yaklang/hack-skills/llm-prompt-injection",
+      "installs": 3508
+    }
+  ]
+}
+

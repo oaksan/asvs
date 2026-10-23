@@ -1,0 +1,207 @@
+version: "1.0.0"
+asvs_version: "5.0.0"
+scope:
+  chapter_id: "V1"
+  chapter_name: "Encoding and Sanitization"
+  level: 1
+  total_in_scope: 8
+
+requirements:
+  V1.2.1:
+    section_id: "V1.2"
+    section_name: "Injection Prevention"
+    title: "Contextual output encoding for HTTP, HTML, and XML"
+    asvs_4_0_refs:
+      - "V5.3.1"
+      - "V5.3.3"
+    mapping_status: "a validar"
+    tools:
+      - "semgrep"
+      - "zap"
+    expected_surfaces:
+      - "html_templates"
+      - "http_responses"
+      - "frontend_js"
+    semgrep_rules:
+      - "v1-2-1-jinja2-autoescape-off"
+      - "v1-2-1-markupsafe-safe-filter"
+      - "v1-2-1-dom-innerhtml-sink"
+      - "v1-2-1-html-response-unencoded"
+    zap_plugins:
+      passive:
+        - "10038"
+        - "10021"
+      active:
+        - "40012"
+        - "40014"
+    manual_fallback: false
+    positive_evidence_criteria: "Regras Semgrep de output encoding executadas sobre templates/rotas HTML/JS com 0 achados ativos e superfície de resposta HTML/HTTP verificada."
+
+  V1.2.2:
+    section_id: "V1.2"
+    section_name: "Injection Prevention"
+    title: "Dynamic URL encoding and safe protocol allowlisting"
+    asvs_4_0_refs:
+      - "V5.3.1"
+      - "V5.1.5"
+    mapping_status: "a validar"
+    tools:
+      - "semgrep"
+      - "zap"
+    expected_surfaces:
+      - "url_builders"
+      - "http_redirects"
+      - "html_links"
+    semgrep_rules:
+      - "v1-2-2-unsafe-url-scheme"
+      - "v1-2-2-open-redirect-unencoded-url"
+    zap_plugins:
+      passive:
+        - "10028"
+      active:
+        - "20019"
+        - "40012"
+    manual_fallback: false
+    positive_evidence_criteria: "Regras Semgrep de protocolos de URL e redirecionamento executadas sobre rotas/templates com 0 achados ativos."
+
+  V1.2.3:
+    section_id: "V1.2"
+    section_name: "Injection Prevention"
+    title: "Output encoding/escaping for dynamically built JavaScript and JSON"
+    asvs_4_0_refs:
+      - "V5.3.2"
+    mapping_status: "confirmada"
+    tools:
+      - "semgrep"
+      - "zap"
+    expected_surfaces:
+      - "html_templates"
+      - "frontend_js"
+      - "json_endpoints"
+    semgrep_rules:
+      - "v1-2-3-inline-script-interpolation"
+      - "v1-2-3-unsafe-json-script-dump"
+    zap_plugins:
+      passive:
+        - "10038"
+      active:
+        - "40012"
+    manual_fallback: false
+    positive_evidence_criteria: "Regras Semgrep de JS/JSON dinâmico executadas sobre arquivos de template/JS/rotas com 0 achados ativos."
+
+  V1.2.4:
+    section_id: "V1.2"
+    section_name: "Injection Prevention"
+    title: "Parameterized database queries (SQL/HQL/NoSQL/Cypher)"
+    asvs_4_0_refs:
+      - "V5.3.4"
+      - "V5.3.5"
+    mapping_status: "confirmada"
+    tools:
+      - "semgrep"
+      - "zap"
+    expected_surfaces:
+      - "database_queries"
+      - "orm_models"
+    semgrep_rules:
+      - "v1-2-4-sql-string-concatenation"
+      - "v1-2-4-sqlalchemy-raw-text-concat"
+    zap_plugins:
+      passive: []
+      active:
+        - "40018"
+    manual_fallback: false
+    positive_evidence_criteria: "Regras Semgrep de SQLi executadas sobre camada de persistência/banco de dados com 0 achados ativos e uso de queries parametrizadas/ORM detectado."
+
+  V1.2.5:
+    section_id: "V1.2"
+    section_name: "Injection Prevention"
+    title: "OS command injection prevention and parameterized OS calls"
+    asvs_4_0_refs:
+      - "V5.3.8"
+    mapping_status: "confirmada"
+    tools:
+      - "semgrep"
+      - "zap"
+    expected_surfaces:
+      - "os_command_calls"
+      - "python_modules"
+    semgrep_rules:
+      - "v1-2-5-subprocess-shell-true"
+      - "v1-2-5-os-system-execution"
+      - "v1-2-5-js-child-process-exec"
+    zap_plugins:
+      passive: []
+      active:
+        - "90020"
+    manual_fallback: false
+    positive_evidence_criteria: "Regras Semgrep de execução de comandos de SO executadas sobre o código-fonte com 0 achados ativos."
+
+  V1.3.1:
+    section_id: "V1.3"
+    section_name: "Sanitization"
+    title: "HTML sanitization for untrusted WYSIWYG or rich HTML input"
+    asvs_4_0_refs:
+      - "V5.2.1"
+    mapping_status: "confirmada"
+    tools:
+      - "semgrep"
+      - "ai_evaluator"
+    ai_evaluation_prompt: "asvs_v1_3_1_sanitization"
+    expected_surfaces:
+      - "rich_html_inputs"
+      - "html_sanitizers"
+    semgrep_rules:
+      - "v1-3-1-unsanitized-rich-html"
+      - "v1-3-1-js-angular-unsanitized-html"
+    zap_plugins:
+      passive: []
+      active: []
+    manual_fallback: true
+    positive_evidence_criteria: "Sanitizador HTML seguro (ex.: bleach.clean / nh3 / DOMPurify) comprovadamente aplicado à superfície de HTML rico ou ausência de vetores de HTML rico não sanitizados com autoescape contextual ativo; avaliado pelo AIEvaluatorAgent quando IA configurada, com fallback para MANUAL_REQUIRED na ausência de modelo."
+
+  V1.3.2:
+    section_id: "V1.3"
+    section_name: "Sanitization"
+    title: "Avoidance of eval() and dynamic code/expression execution"
+    asvs_4_0_refs:
+      - "V5.2.4"
+    mapping_status: "confirmada"
+    tools:
+      - "semgrep"
+    expected_surfaces:
+      - "python_modules"
+      - "frontend_js"
+    semgrep_rules:
+      - "v1-3-2-python-eval-exec"
+      - "v1-3-2-js-eval-function"
+    zap_plugins:
+      passive: []
+      active: []
+    manual_fallback: false
+    positive_evidence_criteria: "Regras Semgrep contra eval/exec/Function executadas sobre todos os módulos Python/JS do projeto com 0 achados ativos."
+
+  V1.5.1:
+    section_id: "V1.5"
+    section_name: "Safe Deserialization"
+    title: "Restrictive XML parser configuration and XXE prevention"
+    asvs_4_0_refs:
+      - "V5.5.2"
+    mapping_status: "confirmada"
+    tools:
+      - "semgrep"
+      - "zap"
+    expected_surfaces:
+      - "xml_parsers"
+      - "python_modules"
+    semgrep_rules:
+      - "v1-5-1-xml-external-entities-enabled"
+      - "v1-5-1-stdlib-xml-unsafe-parser"
+      - "v1-5-1-js-xxe-libxml-noent"
+    zap_plugins:
+      passive: []
+      active:
+        - "90023"
+    manual_fallback: false
+    positive_evidence_criteria: "Regras Semgrep de XXE/XML executadas sobre o código-fonte com 0 achados ativos e superfície de parser XML seguro (ex.: defusedxml) ou verificação ausente de parsers inseguros."
+

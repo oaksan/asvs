@@ -1715,11 +1715,22 @@
     return catalogDescriptions[reqId] || { en: "", pt: "" };
   }
 
+  // Feature 017: never render "undefined"/"null"; derive section from req_id (e.g. V1.2.1 -> V1.2).
+  function safeText(value) {
+    return value === undefined || value === null || value === "undefined" || value === "null" ? "" : String(value);
+  }
+
+  function deriveSectionId(v) {
+    if (safeText(v.section_id)) return String(v.section_id);
+    const m = /^(V\d+\.\d+)\./.exec(safeText(v.req_id));
+    return m ? m[1] : "";
+  }
+
   // Feature 016: PT-BR description as primary text; original normative text (EN) kept collapsible.
   function appendRequirementDescription(container, v, className) {
     const cat = getCatalogDescription(v.req_id);
-    const pt = v.description_pt || cat.pt || "";
-    const en = v.req_description || cat.en || "";
+    const pt = safeText(v.description_pt) || cat.pt || "";
+    const en = safeText(v.req_description) || cat.en || "";
     if (pt) {
       container.appendChild(el("div", { className: className, lang: "pt-BR" }, pt));
     } else {
@@ -1754,7 +1765,7 @@
     const tbody = document.getElementById("verdicts-tbody");
     clearChildren(tbody);
 
-    if (!catalogDescriptionsLoaded && (report.verdicts || []).some((x) => !x.description_pt || !x.req_description)) {
+    if (!catalogDescriptionsLoaded && (report.verdicts || []).some((x) => !safeText(x.description_pt) || !safeText(x.req_description))) {
       ensureCatalogDescriptions().then(() => {
         if (catalogDescriptionsLoaded && state.currentReport === report) renderVerdictsTable(report);
       });
@@ -1765,7 +1776,7 @@
 
     const verdicts = (report.verdicts || []).filter((v) => {
       if (statusFilter && v.status !== statusFilter) return false;
-      if (secFilter && v.section_id !== secFilter) return false;
+      if (secFilter && deriveSectionId(v) !== secFilter) return false;
       return true;
     });
 
@@ -1795,8 +1806,10 @@
         );
         tdReq.appendChild(inhBadge);
       }
-      tdReq.appendChild(el("div", { className: "req-title" }, v.friendly_title || v.section_name || ""));
-      tdReq.appendChild(el("div", { className: "req-section" }, v.section_id + " — " + v.section_name));
+      const reqTitle = safeText(v.friendly_title) || safeText(v.section_name);
+      if (reqTitle) tdReq.appendChild(el("div", { className: "req-title" }, reqTitle));
+      const reqSection = [deriveSectionId(v), safeText(v.section_name)].filter(Boolean).join(" — ");
+      if (reqSection) tdReq.appendChild(el("div", { className: "req-section" }, reqSection));
       appendRequirementDescription(tdReq, v, "req-description");
       tr.appendChild(tdReq);
 
@@ -1973,7 +1986,7 @@
 
     clearChildren(body);
     if (title) {
-      title.textContent = "Detalhes da Verificação — " + v.req_id + " (" + (v.section_name || v.section_id || "") + ")";
+      title.textContent = "Detalhes da Verificação — " + v.req_id + " (" + (safeText(v.section_name) || deriveSectionId(v)) + ")";
     }
 
     const headerRow = el("div", { style: "display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin-bottom:8px;" });

@@ -141,6 +141,8 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
     yield
 
 
+APP_UI_VERSION = "017"
+
 app = FastAPI(
     title="OWASP ASVS 5.0 (V1 L1) Self-Assessment Tool",
     version="1.0.0",
@@ -222,6 +224,7 @@ async def index_page(
         name="index.html",
         context={
             "page_title": "Avaliação de Segurança — OWASP ASVS 5.0",
+            "app_version": APP_UI_VERSION,
             "in_scope_req_ids": list(IN_SCOPE_REQ_IDS),
             "allowed_origins": allowlist,
             "scope_version": config.get("standard_version", "5.0.0"),
@@ -1287,10 +1290,31 @@ def list_run_verdicts(
             select(Verdict).where(Verdict.run_id == run_id).order_by(Verdict.req_id)
         ).all()
     )
+    # Feature 017: presentation fields consumed by the "Resultado por Verificação" table.
+    req_ids = [v.req_id for v in verdicts]
+    reqs_map = {
+        r.req_id: r
+        for r in session.exec(select(Requirement).where(Requirement.req_id.in_(req_ids))).all()
+    } if req_ids else {}
+    mapping_cfg = load_req_tool_mapping().get("requirements", {})
+
+    def _present(req_id: str) -> dict[str, Any]:
+        meta = reqs_map.get(req_id)
+        cfg = mapping_cfg.get(req_id, {})
+        section_name = meta.section_name if meta else cfg.get("section_name", "")
+        return {
+            "section_id": meta.section_id if meta else cfg.get("section_id", ""),
+            "section_name": section_name,
+            "req_description": meta.req_description if meta else "",
+            "friendly_title": cfg.get("friendly_title") or section_name,
+            "description_pt": cfg.get("description_pt", ""),
+        }
+
     return [
         {
             "id": v.id,
             "req_id": v.req_id,
+            **_present(v.req_id),
             "status": v.status,
             "confidence_level": v.confidence_level,
             "tools_used": json.loads(v.tools_used_json or "[]"),

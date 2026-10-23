@@ -35,3 +35,13 @@ This was observed in the project and fixed by removing the broken plugin and ins
 *For more details, refer to the Software Design Document:* [SDD_DockerComposePanicFix.md](../brain/a8d7b0c8-05c6-4565-945a-008e38660b6b/SDD_DockerComposePanicFix.md)
 
 # asvs
+
+---
+
+## Executando mudanças no código
+
+O `docker-compose.yml` monta o projeto em `/workspace`, mas o `uvicorn` roda **sem `--reload`**:
+
+- Mudanças em `static/`, `templates/` e `config/` aparecem ao atualizar a página (Ctrl+F5).
+- Mudanças em **Python (`app/`)** só valem após reiniciar: `docker compose up --build -d` (ou `docker compose restart web`).
+- A versão em execução aparece no rodapé da tela ("Versão NNN"). Se não for a esperada, o servidor está com código antigo.

@@ -173,7 +173,9 @@ def test_static_assets_and_index_have_cache_busting_and_no_cache_headers():
     client = TestClient(app)
     res_index = client.get("/")
     assert res_index.status_code == 200
-    assert "/static/app.js?v=020" in res_index.text
+    from app.main import APP_UI_VERSION
+
+    assert f"/static/app.js?v={APP_UI_VERSION}" in res_index.text
 
     res_js = client.get("/static/app.js")
     assert res_js.status_code == 200

@@ -47,7 +47,10 @@ def _truncate_code_snippet(snippet: str | None) -> str:
 
 def _read_context_snippet(base_dir: Path, rel_uri: str, start_line: int, end_line: int) -> str:
     """Extract bounded lines around `[start_line, end_line]` from the scanned file."""
-    candidate = (base_dir / rel_uri).resolve() if base_dir.is_dir() else base_dir.resolve()
+    base_resolved = base_dir.resolve()
+    candidate = (base_dir / rel_uri).resolve() if base_dir.is_dir() else base_resolved
+    if not candidate.is_relative_to(base_resolved):
+        return ""
     if not candidate.exists() or not candidate.is_file():
         return ""
     try:
@@ -231,6 +234,7 @@ def run_rules(
 
     semgrep_bin = shutil.which("semgrep") or "/home/user/.local/bin/semgrep"
     # Construct strictly as a list of arguments (NEVER shell=True or string concatenation)
+    target_args = [str(p) for p in scanned_files] if scanned_files else [str(confined_target)]
     cmd_args: list[str] = [
         semgrep_bin,
         "scan",
@@ -239,8 +243,7 @@ def run_rules(
         "--sarif",
         "--metrics=off",
         "--quiet",
-        str(confined_target),
-    ]
+    ] + target_args
 
     try:
         completed = subprocess.run(

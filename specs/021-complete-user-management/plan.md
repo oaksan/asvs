@@ -183,3 +183,4 @@ Criar o arquivo de testes `tests/test_feature_021_user_management.py` cobrindo r
 7. `test_cannot_delete_self_or_last_admin()`: Bloqueio de auto-exclusão e bloqueio de exclusão do último admin ativo.
 8. `test_non_admin_forbidden_on_all_new_endpoints()`: Usuário sem papel `admin` recebe HTTP 403 em todos os endpoints de gestão.
 9. `test_ui_assets_contain_feature_021_elements()`: Validação estática de `index.html` e `app.js` assegurando existência dos componentes e conformidade DOM segura.
+

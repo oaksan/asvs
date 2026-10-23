@@ -167,7 +167,9 @@ def test_ui_friendly_verdict_labels_do_not_change_exported_codes() -> None:
     assert "VERDICT_LABELS_PT" in js
     assert "Revisão manual" in js
     assert "tech-details" in css
-    assert "?v=020" in html
+    from app.main import APP_UI_VERSION
+
+    assert f"?v={APP_UI_VERSION}" in html
 
 
 # ---------------------------------------------------------------------------

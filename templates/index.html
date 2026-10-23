@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{{ page_title }}</title>
-  <link rel="stylesheet" href="/static/theme.css?v=020">
+  <link rel="stylesheet" href="/static/theme.css?v=021">
   <script type="module" src="https://unpkg.com/@fluentui/web-components@2.6.1/dist/web-components.min.js"></script>
 </head>
 <body>
@@ -645,8 +645,36 @@
       <div class="fluent-card">
         <h2 style="margin-top:0; margin-bottom:4px;">Gestão de Usuários Locais</h2>
         <p style="color:var(--colorNeutralForeground2); margin-top:0; margin-bottom:16px;">
-          Criação de novos analistas locais e controle de status de ativação. Acesso exclusivo a administradores.
+          Governança completa de analistas locais, papéis de acesso, redefinição de senhas e troca de credencial própria.
         </p>
+
+        <!-- Card 1: Alterar Minha Senha (Conta Autenticada) -->
+        <form id="self-change-password-form" novalidate style="border:1px solid var(--colorNeutralStroke1); border-radius:var(--borderRadiusMedium); padding:16px; background:var(--colorNeutralBackground2); margin-bottom:24px;">
+          <h3 style="margin-top:0; margin-bottom:4px; font-size:15px;">Minha Conta / Alterar Minha Senha</h3>
+          <p style="color:var(--colorNeutralForeground2); margin-top:0; margin-bottom:12px; font-size:13px;">
+            Altere sua própria senha a qualquer momento informando sua senha atual e a nova credencial segura.
+          </p>
+          <div class="form-grid" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:12px;">
+            <div class="form-field">
+              <label for="self-current-password">Senha Atual</label>
+              <input type="password" id="self-current-password" class="fluent-input" required autocomplete="current-password" placeholder="Digite sua senha atual">
+            </div>
+            <div class="form-field">
+              <label for="self-new-password">Nova Senha (mín. 8 caracteres)</label>
+              <input type="password" id="self-new-password" class="fluent-input" required minlength="8" maxlength="128" autocomplete="new-password" placeholder="Nova senha segura">
+            </div>
+            <div class="form-field">
+              <label for="self-confirm-password">Confirmar Nova Senha</label>
+              <input type="password" id="self-confirm-password" class="fluent-input" required minlength="8" maxlength="128" autocomplete="new-password" placeholder="Repita a nova senha">
+            </div>
+          </div>
+          <div style="margin-top:12px; display:flex; justify-content:flex-end;">
+            <button type="submit" id="btn-self-change-password" class="fluent-btn fluent-btn-primary">
+              Salvar Nova Senha
+            </button>
+          </div>
+          <div id="self-password-feedback" role="status" aria-live="polite" style="display:none; font-size:13px; margin-top:8px; padding:8px 12px; border-radius:4px;"></div>
+        </form>
 
         <!-- Formulário de Criação de Usuário -->
         <form id="create-user-form" novalidate style="border:1px solid var(--colorNeutralStroke1); border-radius:var(--borderRadiusMedium); padding:16px; background:var(--colorNeutralBackground2); margin-bottom:24px;">
@@ -916,8 +944,34 @@
     </div>
   </dialog>
 
+  <!-- Accessible Modal Dialog: Admin Reset User Password (Feature 021) -->
+  <dialog id="reset-user-dialog" class="fluent-card" style="max-width:460px; width:92%; border:1px solid var(--colorNeutralStroke1); border-radius:var(--borderRadiusMedium); box-shadow:0 8px 24px rgba(0,0,0,0.18);">
+    <form id="reset-user-form">
+      <h3 style="margin-top:0; margin-bottom:4px;">Redefinir Senha de Usuário</h3>
+      <p style="margin-top:0; margin-bottom:16px; font-size:13px; color:var(--colorNeutralForeground2);">
+        Defina uma nova senha temporária para <strong id="reset-user-target-name"></strong>. O analista será obrigado a alterá-la no próximo login.
+      </p>
+      <input type="hidden" id="reset-user-target-id">
+      <div class="form-field" style="margin-bottom:12px;">
+        <label for="reset-user-new-password">Nova Senha Temporária (mín. 8 caracteres)</label>
+        <input type="password" id="reset-user-new-password" class="fluent-input" required minlength="8" maxlength="128" autocomplete="new-password" placeholder="Nova senha temporária">
+      </div>
+      <div class="form-field" style="margin-bottom:16px;">
+        <label for="reset-user-confirm-password">Confirmar Nova Senha</label>
+        <input type="password" id="reset-user-confirm-password" class="fluent-input" required minlength="8" maxlength="128" autocomplete="new-password" placeholder="Repita a nova senha">
+      </div>
+      <div id="reset-user-error-msg" role="alert" style="display:none; font-size:13px; color:var(--colorPaletteRedForeground1); background:var(--colorPaletteRedBackground1); border:1px solid var(--colorPaletteRedBorderActive); padding:8px 12px; border-radius:4px; margin-bottom:12px;"></div>
+      <div style="display:flex; justify-content:flex-end; gap:8px;">
+        <button type="button" id="btn-cancel-reset-user" class="fluent-btn">Cancelar</button>
+        <button type="submit" id="btn-submit-reset-user" class="fluent-btn fluent-btn-primary">
+          Confirmar Redefinição
+        </button>
+      </div>
+    </form>
+  </dialog>
+
   <footer class="app-version" style="text-align:center; font-size:11px; color:var(--colorNeutralForeground3); padding:12px 0;">Versão {{ app_version }}</footer>
-  <script src="/static/app.js?v=020" defer></script>
+  <script src="/static/app.js?v=021" defer></script>
 </body>
 </html>
 

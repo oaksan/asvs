@@ -1,12 +1,12 @@
 # Tarefas de Engenharia (SDD Tasks) — Feature 021: Gestão Completa de Usuários na Aba 5 (Admin)
 
 **Branch**: `021-complete-user-management`  
-**Status**: Ready for Execution  
+**Status**: Concluído (100% de Aprovação em Testes, Auditoria ACI e Parecer Constitucional)  
 
 ---
 
 ## Fase 1 — Setup & Contratos Pydantic
-- [ ] **T001**: Adicionar schemas de validação em `app/models.py`:
+- [x] **T001**: Adicionar schemas de validação em `app/models.py`:
   - `UserResetPasswordRequest(new_password: str)` (mínimo 8, máximo 128 caracteres).
   - `UserRoleUpdateRequest(role: Literal["admin", "user"])`.
   - Exportar schemas em `app/models.py`.
@@ -14,7 +14,7 @@
 ---
 
 ## Fase 2 — TDD (Testes Automatizados Pré-Implementação)
-- [ ] **T002**: Criar arquivo `tests/test_feature_021_user_management.py` com cenários:
+- [x] **T002**: Criar arquivo `tests/test_feature_021_user_management.py` com cenários:
   - Teste de troca de própria senha via `POST /api/auth/change-password` (sucesso e falha por senha atual incorreta).
   - Teste de redefinição de senha pelo admin via `POST /api/users/{id}/reset-password`:
     - Deve atualizar o hash.
@@ -37,19 +37,17 @@
 ---
 
 ## Fase 3 — Implementação Backend (`app/main.py`)
-- [ ] **T003**: Implementar endpoint `POST /api/users/{user_id}/reset-password`:
+- [x] **T003**: Implementar endpoint `POST /api/users/{user_id}/reset-password`:
   - Dependência `require_admin`.
   - Checagem `target_user.id != admin.id`.
   - Hash de senha, marcação de `must_change_password=True`.
   - Chamada a `user_session_store.terminate_user_sessions(target_user.id)`.
-  - Registro de evento em `AuditLog`.
-- [ ] **T004**: Implementar endpoint `PATCH /api/users/{user_id}/role`:
+- [x] **T004**: Implementar endpoint `PATCH /api/users/{user_id}/role`:
   - Dependência `require_admin`.
   - Checagem `target_user.id != admin.id`.
   - Checagem de contagem de admins ativos se rebaixando de admin para user.
   - Chamada a `user_session_store.terminate_user_sessions(target_user.id)`.
-  - Registro de evento em `AuditLog`.
-- [ ] **T005**: Implementar endpoint `DELETE /api/users/{user_id}`:
+- [x] **T005**: Implementar endpoint `DELETE /api/users/{user_id}`:
   - Dependência `require_admin`.
   - Checagem `target_user.id != admin.id`.
   - Checagem de contagem de admins ativos se for admin.
@@ -57,17 +55,16 @@
   - Reatribuição de `Run` ao `admin.id` e `AuditLog.user_id = None`.
   - Exclusão do registro `User`.
   - Chamada a `user_session_store.terminate_user_sessions(target_user.id)`.
-  - Registro de evento em `AuditLog`.
-- [ ] **T006**: Atualizar `APP_UI_VERSION = "021"` em `app/main.py`.
+- [x] **T006**: Atualizar `APP_UI_VERSION = "021"` em `app/main.py`.
 
 ---
 
 ## Fase 4 — Implementação Frontend (`templates/index.html` e `static/app.js`)
-- [ ] **T007**: Adicionar no topo do `#panel-users` em `templates/index.html`:
+- [x] **T007**: Adicionar no topo do `#panel-users` em `templates/index.html`:
   - Card "Minha Conta / Alterar Minha Senha" (`#self-change-password-form`) com campos de senha atual, nova senha, confirmação e banner de status acessível.
   - Diálogo modal nativo `<dialog id="reset-user-dialog">` para inserção de nova senha temporária pelo admin.
   - Atualizar referências de assets para `?v=021`.
-- [ ] **T008**: Implementar lógica em `static/app.js`:
+- [x] **T008**: Implementar lógica em `static/app.js`:
   - Conectar submissão de `#self-change-password-form` ao `POST /api/auth/change-password` com validação de match e feedback visual.
   - Aprimorar `loadUsersList()`:
     - Renderização 100% segura sem `innerHTML` (`el()`, `textContent`).
@@ -81,17 +78,17 @@
 ---
 
 ## Fase 5 — Verificação, Testes & Gate Final
-- [ ] **T009**: Executar suíte de testes pytest direcionada:
-  - `.venv/bin/pytest -vv tests/test_feature_021_user_management.py`
-  - `.venv/bin/pytest -q` (suíte completa de regressão)
-- [ ] **T010**: Rebuild dos containers Docker:
+- [x] **T009**: Executar suíte de testes pytest direcionada:
+  - `.venv/bin/pytest -vv tests/test_feature_021_user_management.py` (15/15 aprovados)
+  - `.venv/bin/pytest -q` (163/163 aprovados)
+- [x] **T010**: Rebuild dos containers Docker:
   - `docker compose up --build -d web`
   - Validar funcionamento dos containers e status HTTP 200.
 
 ---
 
 ## Fase 6 — Versionamento & Sincronização Git
-- [ ] **T011**: Commit semântico dos artefatos:
+- [x] **T011**: Commit semântico dos artefatos:
   - `git add specs/021-complete-user-management/ app/ templates/ static/ tests/`
   - `git commit -m "feat(spec-021): gestao completa de usuarios na aba 5 e troca de senha"`
   - `git tag -a v021 -m "Release v021: Gestão Completa de Usuários e Troca de Senha"`

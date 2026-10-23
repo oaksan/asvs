@@ -100,8 +100,10 @@ from app.models import (
     User,
     UserAIConfig,
     UserCreateRequest,
+    UserResetPasswordRequest,
     UserResponse,
     UserRole,
+    UserRoleUpdateRequest,
     UserStatusUpdateRequest,
     Verdict,
     utcnow,
@@ -145,7 +147,7 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
     yield
 
 
-APP_UI_VERSION = "020"
+APP_UI_VERSION = "021"
 
 app = FastAPI(
     title="OWASP ASVS 5.0 (V1 L1) Self-Assessment Tool",
@@ -510,6 +512,12 @@ def update_user_status(
             detail="Usuário não encontrado.",
         )
 
+    if target_user.id == admin.id and payload.is_active is False:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Operação bloqueada: não é permitido desativar a própria conta ativa logada.",
+        )
+
     if payload.is_active is False and target_user.role == UserRole.ADMIN.value:
         active_admins = session.exec(
             select(func.count()).select_from(User).where(
@@ -539,6 +547,160 @@ def update_user_status(
         "must_change_password": target_user.must_change_password,
         "is_active": target_user.is_active,
         "created_at": target_user.created_at,
+    }
+
+
+@app.post("/api/users/{user_id}/reset-password", response_model=UserResponse)
+def reset_user_password(
+    user_id: int,
+    payload: UserResetPasswordRequest,
+    admin: SessionUser = Depends(require_admin),
+    session: Session = Depends(get_session),
+) -> dict[str, Any]:
+    """Admin resets temporary password for another user account (must_change_password=True)."""
+    target_user = session.get(User, user_id)
+    if not target_user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Usuário não encontrado.",
+        )
+
+    if target_user.id == admin.id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Operação inválida: para alterar sua própria senha, utilize a opção 'Alterar Minha Senha'.",
+        )
+
+    target_user.password_hash = hash_password(payload.new_password)
+    target_user.must_change_password = True
+    target_user.updated_at = utcnow()
+    session.add(target_user)
+    session.commit()
+    session.refresh(target_user)
+
+    user_session_store.terminate_user_sessions(target_user.id)
+
+    return {
+        "id": target_user.id,
+        "username": target_user.username,
+        "role": target_user.role,
+        "must_change_password": target_user.must_change_password,
+        "is_active": target_user.is_active,
+        "created_at": target_user.created_at,
+    }
+
+
+@app.patch("/api/users/{user_id}/role", response_model=UserResponse)
+def update_user_role(
+    user_id: int,
+    payload: UserRoleUpdateRequest,
+    admin: SessionUser = Depends(require_admin),
+    session: Session = Depends(get_session),
+) -> dict[str, Any]:
+    """Update role for another user with lockout prevention for the last active admin."""
+    target_user = session.get(User, user_id)
+    if not target_user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Usuário não encontrado.",
+        )
+
+    if target_user.id == admin.id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Operação bloqueada: não é permitido alterar o papel da sua própria conta.",
+        )
+
+    if target_user.role == UserRole.ADMIN.value and payload.role != UserRole.ADMIN.value:
+        active_admins = session.exec(
+            select(func.count()).select_from(User).where(
+                User.role == UserRole.ADMIN.value,
+                User.is_active == True,  # noqa: E712
+            )
+        ).one()
+        if active_admins <= 1:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Operação bloqueada: não é permitido revogar privilégios do último administrador ativo (prevenção de lockout).",
+            )
+
+    target_user.role = payload.role
+    target_user.updated_at = utcnow()
+    session.add(target_user)
+    session.commit()
+    session.refresh(target_user)
+
+    user_session_store.terminate_user_sessions(target_user.id)
+
+    return {
+        "id": target_user.id,
+        "username": target_user.username,
+        "role": target_user.role,
+        "must_change_password": target_user.must_change_password,
+        "is_active": target_user.is_active,
+        "created_at": target_user.created_at,
+    }
+
+
+@app.delete("/api/users/{user_id}")
+def delete_user(
+    user_id: int,
+    admin: SessionUser = Depends(require_admin),
+    session: Session = Depends(get_session),
+) -> dict[str, Any]:
+    """Safely delete a user account, cascading AI credentials and preserving ASVS evaluation history."""
+    target_user = session.get(User, user_id)
+    if not target_user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Usuário não encontrado.",
+        )
+
+    if target_user.id == admin.id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Operação bloqueada: não é permitido excluir a própria conta logada (auto-exclusão proibida).",
+        )
+
+    if target_user.role == UserRole.ADMIN.value:
+        active_admins = session.exec(
+            select(func.count()).select_from(User).where(
+                User.role == UserRole.ADMIN.value,
+                User.is_active == True,  # noqa: E712
+            )
+        ).one()
+        if active_admins <= 1:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Operação bloqueada: não é permitido excluir o último administrador ativo (prevenção de lockout).",
+            )
+
+    # Reassign Runs to the executing admin so ASVS assessment reports aren't lost or orphaned
+    runs = session.exec(select(Run).where(Run.user_id == target_user.id)).all()
+    for r in runs:
+        r.user_id = admin.id
+        session.add(r)
+
+    # Dissociate AuditLogs so audit trail is preserved
+    audit_logs = session.exec(select(AuditLog).where(AuditLog.user_id == target_user.id)).all()
+    for al in audit_logs:
+        al.user_id = None
+        session.add(al)
+
+    # Delete UserAIConfig if present
+    user_ai = session.exec(select(UserAIConfig).where(UserAIConfig.user_id == target_user.id)).first()
+    if user_ai:
+        session.delete(user_ai)
+
+    deleted_id = target_user.id
+    session.delete(target_user)
+    session.commit()
+
+    user_session_store.terminate_user_sessions(deleted_id)
+
+    return {
+        "message": "Usuário excluído com sucesso.",
+        "id": deleted_id,
     }
 
 

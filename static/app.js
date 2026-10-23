@@ -2693,7 +2693,174 @@
     if (logoutBtn) logoutBtn.addEventListener("click", handleLogout);
     if (cpLogoutBtn) cpLogoutBtn.addEventListener("click", handleLogout);
 
-    // 4. User Management Controls (Tab 6 - Admin)
+    // 4. Self Change Password Form (Tab 5 / Feature 021)
+    const selfChangePwForm = document.getElementById("self-change-password-form");
+    if (selfChangePwForm) {
+      selfChangePwForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const currentPwEl = document.getElementById("self-current-password");
+        const newPwEl = document.getElementById("self-new-password");
+        const confirmPwEl = document.getElementById("self-confirm-password");
+        const feedbackEl = document.getElementById("self-password-feedback");
+        const submitBtn = document.getElementById("btn-self-change-password");
+
+        const currentPassword = currentPwEl ? currentPwEl.value : "";
+        const newPassword = newPwEl ? newPwEl.value : "";
+        const confirmPassword = confirmPwEl ? confirmPwEl.value : "";
+
+        if (!currentPassword || !newPassword || !confirmPassword) {
+          if (feedbackEl) {
+            feedbackEl.style.display = "block";
+            feedbackEl.style.background = "var(--colorPaletteRedBackground1)";
+            feedbackEl.style.color = "var(--colorPaletteRedForeground1)";
+            feedbackEl.textContent = "Preencha todos os campos do formulário.";
+          }
+          return;
+        }
+
+        if (newPassword.length < 8) {
+          if (feedbackEl) {
+            feedbackEl.style.display = "block";
+            feedbackEl.style.background = "var(--colorPaletteRedBackground1)";
+            feedbackEl.style.color = "var(--colorPaletteRedForeground1)";
+            feedbackEl.textContent = "A nova senha deve possuir no mínimo 8 caracteres.";
+          }
+          return;
+        }
+
+        if (newPassword !== confirmPassword) {
+          if (feedbackEl) {
+            feedbackEl.style.display = "block";
+            feedbackEl.style.background = "var(--colorPaletteRedBackground1)";
+            feedbackEl.style.color = "var(--colorPaletteRedForeground1)";
+            feedbackEl.textContent = "A nova senha e a confirmação não coincidem.";
+          }
+          return;
+        }
+
+        if (submitBtn) submitBtn.disabled = true;
+        try {
+          const resp = await fetch("/api/auth/change-password", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ current_password: currentPassword, new_password: newPassword }),
+          });
+          const data = await resp.json();
+          if (!resp.ok) {
+            if (feedbackEl) {
+              feedbackEl.style.display = "block";
+              feedbackEl.style.background = "var(--colorPaletteRedBackground1)";
+              feedbackEl.style.color = "var(--colorPaletteRedForeground1)";
+              feedbackEl.textContent = data.detail || "Erro ao alterar senha.";
+            }
+            return;
+          }
+
+          if (feedbackEl) {
+            feedbackEl.style.display = "block";
+            feedbackEl.style.background = "var(--colorPaletteGreenBackground1)";
+            feedbackEl.style.color = "var(--colorPaletteGreenForeground1)";
+            feedbackEl.textContent = "Senha alterada com sucesso!";
+          }
+          if (currentPwEl) currentPwEl.value = "";
+          if (newPwEl) newPwEl.value = "";
+          if (confirmPwEl) confirmPwEl.value = "";
+          if (state.currentUser) {
+            state.currentUser.must_change_password = false;
+          }
+          showAlert("Sua senha foi alterada com sucesso.", false);
+        } catch (_err) {
+          if (feedbackEl) {
+            feedbackEl.style.display = "block";
+            feedbackEl.style.background = "var(--colorPaletteRedBackground1)";
+            feedbackEl.style.color = "var(--colorPaletteRedForeground1)";
+            feedbackEl.textContent = "Falha de conexão com o servidor.";
+          }
+        } finally {
+          if (submitBtn) submitBtn.disabled = false;
+        }
+      });
+    }
+
+    // 5. Admin Reset User Password Dialog (Tab 5 / Feature 021)
+    const resetUserDialog = document.getElementById("reset-user-dialog");
+    const resetUserForm = document.getElementById("reset-user-form");
+    const cancelResetUserBtn = document.getElementById("btn-cancel-reset-user");
+
+    if (cancelResetUserBtn && resetUserDialog) {
+      cancelResetUserBtn.addEventListener("click", () => {
+        resetUserDialog.close();
+      });
+    }
+
+    if (resetUserForm && resetUserDialog) {
+      resetUserForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const targetIdEl = document.getElementById("reset-user-target-id");
+        const newPwEl = document.getElementById("reset-user-new-password");
+        const confirmPwEl = document.getElementById("reset-user-confirm-password");
+        const errEl = document.getElementById("reset-user-error-msg");
+        const submitBtn = document.getElementById("btn-submit-reset-user");
+
+        const targetId = targetIdEl ? targetIdEl.value : "";
+        const newPassword = newPwEl ? newPwEl.value : "";
+        const confirmPassword = confirmPwEl ? confirmPwEl.value : "";
+
+        if (!targetId || !newPassword || !confirmPassword) {
+          if (errEl) {
+            errEl.style.display = "block";
+            errEl.textContent = "Preencha todos os campos.";
+          }
+          return;
+        }
+
+        if (newPassword.length < 8) {
+          if (errEl) {
+            errEl.style.display = "block";
+            errEl.textContent = "A senha temporária deve possuir no mínimo 8 caracteres.";
+          }
+          return;
+        }
+
+        if (newPassword !== confirmPassword) {
+          if (errEl) {
+            errEl.style.display = "block";
+            errEl.textContent = "As senhas não coincidem.";
+          }
+          return;
+        }
+
+        if (submitBtn) submitBtn.disabled = true;
+        try {
+          const resp = await fetch("/api/users/" + encodeURIComponent(targetId) + "/reset-password", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ new_password: newPassword }),
+          });
+          const data = await resp.json();
+          if (!resp.ok) {
+            if (errEl) {
+              errEl.style.display = "block";
+              errEl.textContent = data.detail || "Erro ao redefinir senha do usuário.";
+            }
+            return;
+          }
+
+          resetUserDialog.close();
+          showAlert("Senha temporária definida para o usuário '" + data.username + "'. A troca será exigida no próximo login.", false);
+          await loadUsersList();
+        } catch (_err) {
+          if (errEl) {
+            errEl.style.display = "block";
+            errEl.textContent = "Falha ao comunicar com o servidor.";
+          }
+        } finally {
+          if (submitBtn) submitBtn.disabled = false;
+        }
+      });
+    }
+
+    // 6. User Management Controls (Tab 5 - Admin)
     const createUserForm = document.getElementById("create-user-form");
     if (createUserForm) {
       createUserForm.addEventListener("submit", async (e) => {
@@ -2759,6 +2926,27 @@
     }
   }
 
+  function openResetUserModal(user) {
+    const dialog = document.getElementById("reset-user-dialog");
+    const targetIdEl = document.getElementById("reset-user-target-id");
+    const targetNameEl = document.getElementById("reset-user-target-name");
+    const newPwEl = document.getElementById("reset-user-new-password");
+    const confirmPwEl = document.getElementById("reset-user-confirm-password");
+    const errEl = document.getElementById("reset-user-error-msg");
+
+    if (!dialog || typeof dialog.showModal !== "function") return;
+
+    if (targetIdEl) targetIdEl.value = String(user.id);
+    if (targetNameEl) targetNameEl.textContent = user.username;
+    if (newPwEl) newPwEl.value = "";
+    if (confirmPwEl) confirmPwEl.value = "";
+    if (errEl) {
+      errEl.style.display = "none";
+      errEl.textContent = "";
+    }
+    dialog.showModal();
+  }
+
   async function loadUsersList() {
     const tbody = document.getElementById("users-table-body");
     if (!tbody) return;
@@ -2786,19 +2974,72 @@
       }
 
       users.forEach((u) => {
+        const isSelf = Boolean(state.currentUser && state.currentUser.id === u.id);
         const tr = el("tr", { style: "border-bottom:1px solid var(--colorNeutralStroke1);" });
         tr.appendChild(el("td", { style: "padding:8px;" }, String(u.id)));
-        tr.appendChild(el("td", { style: "padding:8px; font-weight:600;" }, u.username));
 
+        // Coluna Usuário com badge (Você)
+        const tdUser = el("td", { style: "padding:8px; font-weight:600;" }, u.username);
+        if (isSelf) {
+          const youBadge = el("span", {
+            className: "badge",
+            style: "margin-left:6px; background:var(--colorBrandBackground2); color:var(--colorBrandForeground1); font-size:11px; padding:2px 6px; border-radius:4px; font-weight:600;",
+          }, "(Você)");
+          tdUser.appendChild(youBadge);
+        }
+        tr.appendChild(tdUser);
+
+        // Coluna Papel (com ação de alterar role)
         const tdRole = el("td", { style: "padding:8px;" });
         const roleBadge = el("span", {
           className: u.role === "admin" ? "badge badge-PASS" : "badge badge-INCONCLUSIVE",
+          style: "margin-right:6px;",
         }, u.role.toUpperCase());
         tdRole.appendChild(roleBadge);
+
+        if (!isSelf) {
+          const switchRoleBtn = el("button", {
+            type: "button",
+            className: "fluent-btn",
+            style: "padding:2px 6px; font-size:11px;",
+            title: u.role === "admin" ? "Rebaixar para Usuário Comum" : "Promover a Administrador",
+          }, u.role === "admin" ? "⬇ Rebaixar" : "⬆ Promover");
+
+          switchRoleBtn.addEventListener("click", async () => {
+            const newRole = u.role === "admin" ? "user" : "admin";
+            const confirmMsg = u.role === "admin"
+              ? "Deseja rebaixar o usuário '" + u.username + "' para Usuário Comum?"
+              : "Deseja promover o usuário '" + u.username + "' a Administrador?";
+            if (!confirm(confirmMsg)) return;
+
+            switchRoleBtn.disabled = true;
+            try {
+              const rResp = await fetch("/api/users/" + encodeURIComponent(u.id) + "/role", {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ role: newRole }),
+              });
+              if (!rResp.ok) {
+                const errData = await rResp.json();
+                showAlert(errData.detail || "Erro ao alterar papel do usuário.", true);
+              } else {
+                showAlert("Papel do usuário '" + u.username + "' atualizado para " + newRole.toUpperCase() + ".", false);
+                await loadUsersList();
+              }
+            } catch (_err) {
+              showAlert("Falha ao comunicar com o servidor.", true);
+            } finally {
+              switchRoleBtn.disabled = false;
+            }
+          });
+          tdRole.appendChild(switchRoleBtn);
+        }
         tr.appendChild(tdRole);
 
+        // Coluna Troca Pendente
         tr.appendChild(el("td", { style: "padding:8px;" }, u.must_change_password ? "Sim" : "Não"));
 
+        // Coluna Status
         const tdStatus = el("td", { style: "padding:8px;" });
         const statusBadge = el("span", {
           className: u.is_active ? "badge badge-PASS" : "badge badge-FAIL",
@@ -2806,17 +3047,21 @@
         tdStatus.appendChild(statusBadge);
         tr.appendChild(tdStatus);
 
+        // Coluna Criado em
         const dateStr = u.created_at ? new Date(u.created_at).toLocaleString("pt-BR") : "-";
         tr.appendChild(el("td", { style: "padding:8px; font-size:12px; color:var(--colorNeutralForeground2);" }, dateStr));
 
-        const tdAction = el("td", { style: "padding:8px;" });
+        // Coluna Ações
+        const tdAction = el("td", { style: "padding:8px; display:flex; gap:6px; align-items:center; flex-wrap:wrap;" });
+
+        // Ação 1: Desativar / Ativar
         const toggleBtn = el("button", {
           type: "button",
           className: u.is_active ? "fluent-btn fluent-btn-danger" : "fluent-btn fluent-btn-primary",
-          style: "padding:2px 8px; font-size:12px;",
+          style: "padding:3px 8px; font-size:12px;",
         }, u.is_active ? "Desativar" : "Ativar");
 
-        if (state.currentUser && state.currentUser.id === u.id) {
+        if (isSelf) {
           toggleBtn.disabled = true;
           toggleBtn.title = "Não é permitido desativar sua própria conta ativa.";
         } else {
@@ -2842,8 +3087,61 @@
           });
         }
         tdAction.appendChild(toggleBtn);
-        tr.appendChild(tdAction);
 
+        // Ação 2: Redefinir Senha
+        const resetBtn = el("button", {
+          type: "button",
+          className: "fluent-btn",
+          style: "padding:3px 8px; font-size:12px;",
+        }, "🔑 Redefinir Senha");
+
+        if (isSelf) {
+          resetBtn.disabled = true;
+          resetBtn.title = "Para alterar sua senha, utilize o formulário 'Minha Conta' acima.";
+        } else {
+          resetBtn.addEventListener("click", () => {
+            openResetUserModal(u);
+          });
+        }
+        tdAction.appendChild(resetBtn);
+
+        // Ação 3: Excluir Usuário
+        const deleteBtn = el("button", {
+          type: "button",
+          className: "fluent-btn fluent-btn-danger",
+          style: "padding:3px 8px; font-size:12px;",
+        }, "🗑 Excluir");
+
+        if (isSelf) {
+          deleteBtn.disabled = true;
+          deleteBtn.title = "Não é permitido excluir sua própria conta.";
+        } else {
+          deleteBtn.addEventListener("click", async () => {
+            const confirmDel = confirm("Tem certeza que deseja excluir permanentemente o usuário '" + u.username + "'? Esta ação não pode ser desfeita.");
+            if (!confirmDel) return;
+
+            deleteBtn.disabled = true;
+            try {
+              const delResp = await fetch("/api/users/" + encodeURIComponent(u.id), {
+                method: "DELETE",
+              });
+              if (!delResp.ok) {
+                const errData = await delResp.json();
+                showAlert(errData.detail || "Erro ao excluir usuário.", true);
+              } else {
+                showAlert("Usuário '" + u.username + "' excluído com sucesso.", false);
+                await loadUsersList();
+              }
+            } catch (_e) {
+              showAlert("Falha ao comunicar com o servidor.", true);
+            } finally {
+              deleteBtn.disabled = false;
+            }
+          });
+        }
+        tdAction.appendChild(deleteBtn);
+
+        tr.appendChild(tdAction);
         tbody.appendChild(tr);
       });
     } catch (_err) {

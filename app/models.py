@@ -260,6 +260,18 @@ class UserStatusUpdateRequest(BaseModel):
     is_active: bool
 
 
+class UserResetPasswordRequest(BaseModel):
+    """Payload for POST /api/users/{user_id}/reset-password (Admin only)."""
+
+    new_password: str = PydanticField(..., min_length=8, max_length=128)
+
+
+class UserRoleUpdateRequest(BaseModel):
+    """Payload for PATCH /api/users/{user_id}/role (Admin only)."""
+
+    role: Literal["admin", "user"]
+
+
 class ChangePasswordRequest(BaseModel):
     """Payload for POST /api/auth/change-password."""
 

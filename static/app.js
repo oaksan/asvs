@@ -872,53 +872,70 @@
           const keyInput = document.getElementById("azure-api-key") || document.getElementById("ai-api-key");
           if (keyInput) keyInput.focus();
           showFormFeedback(
-            "Pré-requisito de IA não atendido: Configure as credenciais de IA na Guia 5 antes de iniciar a autoavaliação da ferramenta.",
+            "Pré-requisito de IA não atendido: Configure as credenciais de IA na Guia 4 antes de iniciar a autoavaliação da ferramenta.",
             true
           );
           showAlert(
-            "Pré-requisito de IA não atendido: Configure a IA na Guia 5 antes de executar a autoavaliação da ferramenta.",
+            "Pré-requisito de IA não atendido: Configure a IA na Guia 4 antes de executar a autoavaliação da ferramenta.",
             true
           );
           return;
         }
 
         const zapSt = await refreshZapStatus();
-        if (sourceSelect) {
-          if (Array.from(sourceSelect.options).some((o) => o.value === "workspace_path")) {
-            sourceSelect.value = "workspace_path";
-            syncSastSourceFields();
-          }
-        }
-        const pathInput = document.getElementById("workspace-subpath");
-        const urlInput = document.getElementById("target-url");
-        const zapAuthCheckbox = document.getElementById("zap-authorized");
-        const zapModeSelect = document.getElementById("zap-mode");
+        const targetUrl = zapSt && zapSt.online ? (window.location.origin || "http://localhost:8000") : null;
+        const zapMode = "active";
 
-        if (pathInput) pathInput.value = "app";
-        if (zapAuthCheckbox) zapAuthCheckbox.checked = true;
-        const dastAuthContainer = document.getElementById("dast-auth-container");
-        if (dastAuthContainer) {
-          dastAuthContainer.classList.remove("input-error-highlight");
-          dastAuthContainer.classList.remove("has-error");
-        }
-
-        if (zapSt && zapSt.online) {
-          if (urlInput) {
-            urlInput.value = window.location.origin || "http://localhost:8000";
-          }
-          if (zapModeSelect) {
-            zapModeSelect.value = "active";
-          }
-        } else {
-          if (urlInput) {
-            urlInput.value = "";
-          }
+        if (!targetUrl) {
           showAlert(
             "Aviso: OWASP ZAP Daemon está OFFLINE. A autoavaliação executará somente SAST + IA (25.0% PASS; 6 requisitos dependentes do ZAP ficarão INCONCLUSIVE). Para cobertura completa (100.0% PASS), inicie o ZAP com: docker compose up -d zap",
             true
           );
         }
-        await submitAssessmentForm();
+
+        resetStepper();
+        try {
+          const resp = await fetch("/api/runs", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              source_type: "workspace_path",
+              workspace_subpath: "app",
+              target_url: targetUrl,
+              zap_authorized: true,
+              zap_mode: zapMode,
+            }),
+          });
+
+          const rawText = await resp.text();
+          let payload = {};
+          try {
+            payload = rawText ? JSON.parse(rawText) : {};
+          } catch (_e) {
+            payload = { detail: rawText };
+          }
+
+          if (!resp.ok) {
+            const detailMsg = typeof payload.detail === "string" ? payload.detail : JSON.stringify(payload.detail || "Falha ao iniciar");
+            showFormFeedback("Erro (" + resp.status + "): " + detailMsg, true);
+            showAlert("Erro ao iniciar autoavaliação (" + resp.status + "): " + detailMsg, true);
+            return;
+          }
+
+          state.activeRunId = payload.run_id;
+          showAlert(
+            "Autoavaliação da própria ferramenta (app/) #" +
+              payload.run_id +
+              " iniciada com sucesso. Acompanhando execução...",
+            false
+          );
+          activateTab(document.getElementById("tab-execution"));
+          connectSSE(payload.run_id);
+          await loadRunsHistory();
+        } catch (err) {
+          showFormFeedback("Falha de rede ao disparar autoavaliação: " + String(err), true);
+          showAlert("Falha de rede ao disparar autoavaliação: " + String(err), true);
+        }
       });
     }
 

@@ -36,7 +36,7 @@ class OrchestratorInput(BaseModel):
 
     run_id: int
     previous_run_id: int | None = None
-    stage_timeout_sec: float = 90.0
+    stage_timeout_sec: float = 180.0
     selective_req_ids: list[str] | None = None
     source_path: str | None = None
     target_url: str | None = None
@@ -375,10 +375,51 @@ class OrchestratorAgent:
                         progress_percent=30,
                         message=f"Executando SAST Agent (Semgrep) para {len(sast_needed_reqs)} requisitos...",
                     )
-                    sast_out, dast_out = await asyncio.wait_for(
-                        asyncio.gather(_run_sast(), _run_dast()),
-                        timeout=inp.stage_timeout_sec,
-                    )
+                    try:
+                        sast_out, dast_out = await asyncio.wait_for(
+                            asyncio.gather(_run_sast(), _run_dast()),
+                            timeout=inp.stage_timeout_sec,
+                        )
+                    except asyncio.TimeoutError:
+                        self._emit(
+                            run_id,
+                            status=RunStatus.RUNNING.value,
+                            stage=PipelineStage.SAST.value,
+                            stage_status="FAILED",
+                            progress_percent=55,
+                            message=f"Tempo limite ({inp.stage_timeout_sec}s) esgotado na etapa SAST (Semgrep).",
+                        )
+                        if scoper_out.dast_enabled and run_row.target_url and dast_needed_reqs:
+                            self._emit(
+                                run_id,
+                                status=RunStatus.RUNNING.value,
+                                stage=PipelineStage.DAST.value,
+                                stage_status="FAILED",
+                                progress_percent=65,
+                                message=f"Tempo limite ({inp.stage_timeout_sec}s) esgotado na etapa DAST (OWASP ZAP).",
+                            )
+                        raise TimeoutError(
+                            f"Tempo limite ({inp.stage_timeout_sec}s) esgotado durante a execução de SAST e DAST."
+                        )
+                    except Exception as gather_exc:
+                        self._emit(
+                            run_id,
+                            status=RunStatus.RUNNING.value,
+                            stage=PipelineStage.SAST.value,
+                            stage_status="FAILED",
+                            progress_percent=55,
+                            message=f"Falha na etapa SAST (Semgrep): {gather_exc}",
+                        )
+                        if scoper_out.dast_enabled and run_row.target_url and dast_needed_reqs:
+                            self._emit(
+                                run_id,
+                                status=RunStatus.RUNNING.value,
+                                stage=PipelineStage.DAST.value,
+                                stage_status="FAILED",
+                                progress_percent=65,
+                                message=f"Falha na etapa DAST (OWASP ZAP): {gather_exc}",
+                            )
+                        raise
                     stages_completed.append(PipelineStage.SAST.value)
                     self._emit(
                         run_id,

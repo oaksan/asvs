@@ -80,9 +80,9 @@ def test_dast_card_preserves_functional_elements_and_badge() -> None:
     assert "Declaro que possuo autorização explícita para executar testes dinâmicos" in html
 
     # Version check
-    assert APP_UI_VERSION == "023"
-    assert "v=023" in html
-    assert "Versão 023" in html
+    assert int(APP_UI_VERSION) >= 23
+    assert f"v={APP_UI_VERSION}" in html
+    assert f"Versão {APP_UI_VERSION}" in html
 
 
 def test_dast_functional_guardrail_blocks_without_consent(auth_admin_client: TestClient) -> None:

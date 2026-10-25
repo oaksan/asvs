@@ -149,7 +149,7 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
     yield
 
 
-APP_UI_VERSION = "023"
+APP_UI_VERSION = "024"
 
 app = FastAPI(
     title="OWASP ASVS 5.0 (V1 L1) Self-Assessment Tool",

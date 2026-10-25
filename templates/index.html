@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{{ page_title }}</title>
-  <link rel="stylesheet" href="/static/theme.css?v=021">
+  <link rel="stylesheet" href="/static/theme.css?v=022">
   <script type="module" src="https://unpkg.com/@fluentui/web-components@2.6.1/dist/web-components.min.js"></script>
 </head>
 <body>
@@ -90,24 +90,39 @@
               <div class="form-field">
                 <label for="source-type">Origem do Código-Fonte</label>
                 <select id="source-type" name="source_type" class="fluent-select">
-                  <option value="workspace_path" selected>Caminho em Workspace Local</option>
+                  <option value="directory_upload" selected>Caminho em Diretório Local</option>
                   <option value="zip_upload">Upload de Arquivo .ZIP</option>
                 </select>
               </div>
 
-              <div class="form-field" id="workspace-path-group">
-                <label for="workspace-subpath">Caminho Relativo no Workspace</label>
-                <input
-                  type="text"
-                  id="workspace-subpath"
-                  name="workspace_subpath"
-                  class="fluent-input"
-                  value="tests/vulnerable_app"
-                  placeholder="Ex.: tests/vulnerable_app ou app"
-                  required
-                >
-                <small style="color:var(--colorNeutralForeground3);">
-                  Confinado à raiz do projeto (guardrail contra path traversal).
+              <div class="form-field" id="directory-upload-group">
+                <label for="source-directory">Caminho em Diretório Local</label>
+                <div style="display:flex; gap:8px; align-items:center;">
+                  <input
+                    type="file"
+                    id="source-directory"
+                    name="source_directory"
+                    class="fluent-input"
+                    webkitdirectory
+                    directory
+                    multiple
+                    style="display:none;"
+                  >
+                  <button
+                    type="button"
+                    id="btn-browse-directory"
+                    class="fluent-btn fluent-btn-secondary"
+                    aria-controls="source-directory"
+                  >
+                    Procurar...
+                  </button>
+                  <span id="source-directory-chosen" style="font-size:0.875rem; color:var(--colorNeutralForeground2);">
+                    Nenhum diretório selecionado
+                  </span>
+                </div>
+                <div id="source-directory-summary" role="status" aria-live="polite" style="margin-top:6px; font-size:0.875rem; color:var(--colorNeutralForeground3);"></div>
+                <small style="color:var(--colorNeutralForeground3); display:block; margin-top:4px;">
+                  Selecione a pasta raiz do projeto no disco local. O navegador inspeciona a árvore de diretórios e envia os arquivos de código de forma confinada.
                 </small>
               </div>
 
@@ -973,7 +988,7 @@
   </dialog>
 
   <footer class="app-version" style="text-align:center; font-size:11px; color:var(--colorNeutralForeground3); padding:12px 0;">Versão {{ app_version }}</footer>
-  <script src="/static/app.js?v=021" defer></script>
+  <script src="/static/app.js?v=022" defer></script>
 </body>
 </html>
 

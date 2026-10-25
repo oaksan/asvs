@@ -13,6 +13,7 @@ import re
 import shutil
 import stat
 import time
+import unicodedata
 import zipfile
 from math import ceil
 from pathlib import Path
@@ -30,6 +31,35 @@ UPLOADS_ROOT = (WORKSPACE_ROOT / ".workspace_uploads").resolve()
 MAX_ZIP_BYTES = 300 * 1024 * 1024  # 300 MB
 MAX_ZIP_FILES = 15000
 MAX_SNIPPET_LINES = 30
+
+MAX_DIR_UPLOAD_FILE_BYTES = 5 * 1024 * 1024  # 5 MB
+MAX_DIR_TOTAL_BYTES = 300 * 1024 * 1024       # 300 MB
+MAX_DIR_FILES = 15000
+
+WINDOWS_RESERVED_NAMES = {
+    "CON",
+    "PRN",
+    "AUX",
+    "NUL",
+    "COM1",
+    "COM2",
+    "COM3",
+    "COM4",
+    "COM5",
+    "COM6",
+    "COM7",
+    "COM8",
+    "COM9",
+    "LPT1",
+    "LPT2",
+    "LPT3",
+    "LPT4",
+    "LPT5",
+    "LPT6",
+    "LPT7",
+    "LPT8",
+    "LPT9",
+}
 
 IGNORED_DIRS = {
     ".git",
@@ -244,6 +274,123 @@ def extract_safe_zip(zip_path: Path, run_id: int | str, base_root: Path | None =
         raise
 
     return uploads_dir
+
+
+def save_safe_directory_upload(
+    upload_files: list[UploadFile],
+    relative_paths: list[str],
+    upload_id: str,
+    base_root: Path | None = None,
+) -> Path:
+    """Save an uploaded directory hierarchy in a confined workspace directory with strict validation.
+
+    Ensures zero-trust path validation, blocks path traversal (../), absolute paths,
+    Windows device/stream names, empty/dot path segments, and enforces per-file and total size limits.
+    Any error triggers an atomic rollback (cleanup) of the created directory.
+    """
+    if len(upload_files) != len(relative_paths):
+        raise ValueError("Inconsistência de paridade entre arquivos e caminhos relativos.")
+    if not upload_files:
+        raise ValueError("Nenhum arquivo enviado para o diretório.")
+    if len(upload_files) > MAX_DIR_FILES:
+        raise ValueError(
+            f"Quantidade de arquivos ({len(upload_files)}) excede o limite máximo permitido ({MAX_DIR_FILES})."
+        )
+
+    root = (base_root or WORKSPACE_ROOT).resolve()
+    target_dir = (root / ".workspace_uploads" / f"dir_{upload_id}").resolve()
+    if not target_dir.is_relative_to(root):
+        raise PermissionError("Identificador de upload inválido ou fora do workspace.")
+
+    # Phase 1: Pure in-memory pre-validation of all relative paths
+    validated_entries: list[tuple[UploadFile, Path]] = []
+    seen_dest_paths: set[Path] = set()
+
+    for file_obj, rel_path in zip(upload_files, relative_paths):
+        if not rel_path or not isinstance(rel_path, str):
+            raise ValueError("Caminho relativo de arquivo inválido ou ausente.")
+
+        if "\x00" in rel_path:
+            raise ValueError("Caminho contém byte nulo.")
+        if any(ord(c) < 32 for c in rel_path):
+            raise ValueError("Caminho contém caracteres de controle não permitidos.")
+
+        normalized_str = unicodedata.normalize("NFC", rel_path).strip()
+        if not normalized_str:
+            raise ValueError("Caminho normalizado está vazio.")
+
+        # Block absolute paths and Windows drive letters or alternate data streams
+        if normalized_str.startswith("/") or normalized_str.startswith("\\") or ":" in normalized_str:
+            raise PermissionError(f"Caminho absoluto ou com dispositivo inválido: '{rel_path}'.")
+
+        # Split segments and check each
+        raw_segments = normalized_str.replace("\\", "/").split("/")
+        for seg in raw_segments:
+            if seg in ("", "."):
+                raise ValueError(f"Caminho contém segmento vazio ou ponto relativo inválido: '{rel_path}'.")
+            if seg == "..":
+                raise PermissionError(f"Tentativa de path traversal detectada: '{rel_path}'.")
+
+            # Check Windows reserved device names (CON, PRN, AUX, NUL, COM1-9, LPT1-9)
+            base_seg = seg.split(".")[0].upper()
+            if base_seg in WINDOWS_RESERVED_NAMES:
+                raise ValueError(f"Nome de arquivo reservado do sistema não permitido: '{seg}'.")
+
+        dest_file = (target_dir / Path(*raw_segments)).resolve()
+        if not dest_file.is_relative_to(target_dir) or dest_file == target_dir:
+            raise PermissionError(f"Destino do arquivo escapa do diretório confinado: '{rel_path}'.")
+
+        if dest_file in seen_dest_paths:
+            raise ValueError(f"Caminho de arquivo duplicado no diretório: '{rel_path}'.")
+
+        seen_dest_paths.add(dest_file)
+        validated_entries.append((file_obj, dest_file))
+
+    # Check for file vs directory conflicts (e.g. 'app' as a file and 'app/main.py')
+    for path in seen_dest_paths:
+        for parent in path.parents:
+            if parent in seen_dest_paths:
+                raise ValueError(
+                    f"Conflito de caminho entre arquivo e diretório pai: '{parent.relative_to(target_dir)}' e '{path.relative_to(target_dir)}'."
+                )
+
+    # Phase 2: Create directory and stream files with rollback on any failure
+    try:
+        target_dir.mkdir(parents=True, exist_ok=True)
+        total_bytes_written = 0
+        written_files = 0
+
+        for file_obj, dest_file in validated_entries:
+            dest_file.parent.mkdir(parents=True, exist_ok=True)
+            flags = os.O_CREAT | os.O_EXCL | os.O_WRONLY | getattr(os, "O_NOFOLLOW", 0)
+            fd = os.open(dest_file, flags, 0o600)
+            file_bytes_written = 0
+            with open(fd, "wb", closefd=True) as out_f:
+                while True:
+                    chunk = file_obj.file.read(65536)
+                    if not chunk:
+                        break
+                    file_bytes_written += len(chunk)
+                    if file_bytes_written > MAX_DIR_UPLOAD_FILE_BYTES:
+                        raise ValueError(
+                            f"Arquivo '{dest_file.name}' excede o limite máximo permitido de 5 MB por arquivo."
+                        )
+                    total_bytes_written += len(chunk)
+                    if total_bytes_written > MAX_DIR_TOTAL_BYTES:
+                        raise ValueError(
+                            "Upload de diretório excede o limite agregado total de 300 MB."
+                        )
+                    out_f.write(chunk)
+            written_files += 1
+
+        if written_files == 0:
+            raise ValueError("Nenhum arquivo gravado com sucesso no upload de diretório.")
+
+    except BaseException:
+        shutil.rmtree(target_dir, ignore_errors=True)
+        raise
+
+    return target_dir
 
 
 def _iter_workspace_files(target_dir: Path) -> list[Path]:

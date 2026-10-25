@@ -39,10 +39,12 @@ from sqlmodel import Session, func, select
 from app.aci import ai_aci
 from app.aci.ai_aci import check_ai_connectivity
 from app.aci.workspace_aci import (
+    MAX_DIR_FILES,
     WORKSPACE_ROOT,
     extract_safe_zip,
     paginate_items,
     resolve_and_confine_path,
+    save_safe_directory_upload,
 )
 from app.aci.zap_aci import (
     check_zap_connectivity,
@@ -147,7 +149,7 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
     yield
 
 
-APP_UI_VERSION = "021"
+APP_UI_VERSION = "022"
 
 app = FastAPI(
     title="OWASP ASVS 5.0 (V1 L1) Self-Assessment Tool",
@@ -515,7 +517,7 @@ def update_user_status(
     if target_user.id == admin.id and payload.is_active is False:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Operação bloqueada: não é permitido desativar a própria conta ativa logada.",
+            detail="Operação bloqueada: não é permitido desativar a própria conta ativa logada (prevenção de lockout).",
         )
 
     if payload.is_active is False and target_user.role == UserRole.ADMIN.value:
@@ -957,6 +959,17 @@ async def create_run(
     """Start a new ASVS assessment run (supports both JSON workspace_path and multipart/form-data zip_upload)."""
     content_type = (request.headers.get("content-type") or "").lower()
     if "multipart/form-data" in content_type:
+        form = await request.form(max_files=MAX_DIR_FILES, max_fields=MAX_DIR_FILES * 2 + 100)
+        if form.getlist("paths") or form.get("source_type") == "directory_upload":
+            return await create_run_via_directory_upload(
+                request=request,
+                background_tasks=background_tasks,
+                sync=sync,
+                current_user=current_user,
+                session=session,
+                config=config,
+                orchestrator=orchestrator,
+            )
         return await create_run_via_upload(
             request=request,
             background_tasks=background_tasks,
@@ -1175,6 +1188,130 @@ async def create_run_via_upload(
         "current_stage": run.current_stage,
         "owner_username": run.owner_username,
         "message": f"Avaliação #{run.id} criada via upload ZIP com sucesso.",
+    }
+
+
+@app.post("/api/runs/upload-directory", status_code=status.HTTP_202_ACCEPTED)
+async def create_run_via_directory_upload(
+    request: Request,
+    background_tasks: BackgroundTasks,
+    sync: bool = Query(default=False),
+    current_user: SessionUser = Depends(get_current_user),
+    session: Session = Depends(get_session),
+    config: dict[str, Any] = Depends(get_config),
+    orchestrator: OrchestratorAgent = Depends(get_orchestrator),
+) -> dict[str, Any]:
+    """Upload local directory files hierarchy and start assessment bound to current user."""
+    form = await request.form(max_files=MAX_DIR_FILES, max_fields=MAX_DIR_FILES * 2 + 100)
+
+    target_url = form.get("target_url")
+    zap_authorized = str(form.get("zap_authorized", "")).lower() in ("true", "1", "on")
+    zap_mode = str(form.get("zap_mode", "active"))
+
+    if not zap_authorized:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Guardrail DAST acionado: É obrigatório declarar autorização explícita (checkbox zap_authorized) para iniciar qualquer avaliação ASVS.",
+        )
+
+    # AI Prerequisite Gate
+    token = request.cookies.get(SESSION_COOKIE_NAME)
+    s_data = user_session_store.get_session(token) if token else None
+    has_ai = bool(s_data and s_data.ai_api_key) or AISecretStore.get_instance().is_configured()
+    if not has_ai:
+        db_cfg = session.exec(select(UserAIConfig).where(UserAIConfig.user_id == current_user.id)).first()
+        if db_cfg:
+            has_ai = True
+    if not has_ai:
+        raise HTTPException(
+            status_code=status.HTTP_412_PRECONDITION_FAILED,
+            detail="Pré-requisito de IA não atendido: Um provedor de IA generativa deve ser configurado antes de iniciar a avaliação ASVS.",
+        )
+
+    target_url_clean = None
+    if target_url:
+        ok, err_msg = validate_dast_target(str(target_url), zap_authorized)
+        if not ok:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=err_msg,
+            )
+        target_url_clean = str(target_url).strip()
+
+    raw_files = form.getlist("files")
+    upload_files = [f for f in raw_files if hasattr(f, "read")]
+
+    raw_paths = form.getlist("paths")
+    parsed_paths: list[str] = []
+    for p in raw_paths:
+        if hasattr(p, "read"):
+            content = await p.read()
+            parsed_paths.append(content.decode("utf-8", errors="replace").strip())
+        else:
+            parsed_paths.append(str(p).strip())
+
+    if not upload_files or not parsed_paths:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Nenhum arquivo ou caminho de arquivo enviado para o diretório local.",
+        )
+
+    if len(upload_files) != len(parsed_paths):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Inconsistência de paridade entre arquivos enviados e caminhos relativos.",
+        )
+
+    upload_id = str(uuid.uuid4())[:8]
+
+    try:
+        extracted_dir = save_safe_directory_upload(upload_files, parsed_paths, upload_id)
+    except (PermissionError, ValueError) as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        )
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erro interno ao salvar arquivos do diretório: {exc}",
+        )
+
+    run = Run(
+        user_id=current_user.id,
+        owner_username=current_user.username,
+        source_type="directory_upload",
+        source_path=str(extracted_dir),
+        target_url=target_url_clean,
+        zap_authorized=zap_authorized,
+        zap_mode=zap_mode,
+        status=RunStatus.PENDING.value,
+        current_stage=PipelineStage.SCOPER.value,
+    )
+    session.add(run)
+    session.commit()
+    session.refresh(run)
+
+    orch_input = OrchestratorInput(
+        run_id=run.id,
+        source_path=str(extracted_dir),
+        target_url=target_url_clean,
+        zap_authorized=zap_authorized,
+        zap_mode=zap_mode,
+    )
+    if sync:
+        await orchestrator.execute(orch_input)
+        session.refresh(run)
+    else:
+        background_tasks.add_task(orchestrator.execute, orch_input)
+
+    return {
+        "ok": True,
+        "run_id": run.id,
+        "status": run.status,
+        "current_stage": run.current_stage,
+        "owner_username": run.owner_username,
+        "message": f"Avaliação #{run.id} criada via upload de diretório local com sucesso.",
     }
 
 

@@ -531,6 +531,8 @@ def test_ui_assets_feature_021():
     html = (root / "templates" / "index.html").read_text(encoding="utf-8")
     js = (root / "static" / "app.js").read_text(encoding="utf-8")
 
+    from app.main import APP_UI_VERSION
+
     # index.html
     assert "self-change-password-form" in html
     assert "self-current-password" in html
@@ -538,7 +540,7 @@ def test_ui_assets_feature_021():
     assert "self-confirm-password" in html
     assert "reset-user-dialog" in html
     assert "reset-user-new-password" in html
-    assert "v=021" in html
+    assert f"v={APP_UI_VERSION}" in html
 
     # app.js
     assert "self-change-password-form" in js

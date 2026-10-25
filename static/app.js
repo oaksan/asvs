@@ -698,28 +698,125 @@
   // Assessment Form & SSE Real-Time Pipeline Stream
   // ===========================================================================
 
+  const IGNORED_DIR_NAMES = new Set([
+    "node_modules",
+    ".git",
+    ".venv",
+    "__pycache__",
+    ".idea",
+    ".vscode",
+    ".terraform",
+    "dist",
+    "build",
+  ]);
+  const SECRET_FILE_PATTERN = /^(\.env(\..+)?|.*\.pem|.*\.key|id_rsa|id_ed25519)$/i;
+  const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB
+
+  function formatFileSize(bytes) {
+    if (bytes === 0) return "0 B";
+    const k = 1024;
+    const sizes = ["B", "KB", "MB", "GB"];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
+  }
+
+  function getEligibleDirectoryFiles(fileList) {
+    const eligible = [];
+    let ignoredCount = 0;
+    let totalBytes = 0;
+
+    for (let i = 0; i < fileList.length; i++) {
+      const file = fileList[i];
+      const relPath = file.webkitRelativePath || file.name;
+      const segments = relPath.replace(/\\/g, "/").split("/");
+      const fileName = segments[segments.length - 1];
+
+      let inIgnoredDir = false;
+      for (let s = 0; s < segments.length - 1; s++) {
+        if (IGNORED_DIR_NAMES.has(segments[s])) {
+          inIgnoredDir = true;
+          break;
+        }
+      }
+      if (inIgnoredDir || SECRET_FILE_PATTERN.test(fileName) || file.size > MAX_FILE_SIZE_BYTES) {
+        ignoredCount++;
+        continue;
+      }
+
+      eligible.push({ file, relPath });
+      totalBytes += file.size;
+    }
+
+    return { eligible, ignoredCount, totalBytes };
+  }
+
   function syncSastSourceFields() {
     const sourceSelect = document.getElementById("source-type");
-    const pathGroup = document.getElementById("workspace-path-group");
+    const dirGroup = document.getElementById("directory-upload-group");
     const zipGroup = document.getElementById("zip-upload-group");
-    if (!sourceSelect || !pathGroup || !zipGroup) return;
+    const workspaceGroup = document.getElementById("workspace-path-group");
+    if (!sourceSelect) return;
 
-    const isZip = sourceSelect.value === "zip_upload";
-    pathGroup.hidden = isZip;
-    pathGroup.style.display = isZip ? "none" : "flex";
-    zipGroup.hidden = !isZip;
-    zipGroup.style.display = isZip ? "flex" : "none";
+    const val = sourceSelect.value;
+    const isZip = val === "zip_upload";
+    const isDir = val === "directory_upload";
+
+    if (dirGroup) {
+      dirGroup.hidden = !isDir;
+      dirGroup.style.display = isDir ? "block" : "none";
+    }
+    if (zipGroup) {
+      zipGroup.hidden = !isZip;
+      zipGroup.style.display = isZip ? "flex" : "none";
+    }
+    if (workspaceGroup) {
+      const isWorkspace = val === "workspace_path";
+      workspaceGroup.hidden = !isWorkspace;
+      workspaceGroup.style.display = isWorkspace ? "flex" : "none";
+    }
   }
 
   function initAssessmentForm() {
     const sourceSelect = document.getElementById("source-type");
-    const pathGroup = document.getElementById("workspace-path-group");
-    const zipGroup = document.getElementById("zip-upload-group");
 
     syncSastSourceFields();
-    if (sourceSelect && pathGroup && zipGroup) {
+    if (sourceSelect) {
       sourceSelect.addEventListener("change", () => {
         syncSastSourceFields();
+      });
+    }
+
+    const browseDirBtn = document.getElementById("btn-browse-directory");
+    const dirInput = document.getElementById("source-directory");
+    const dirChosen = document.getElementById("source-directory-chosen");
+    const dirSummary = document.getElementById("source-directory-summary");
+
+    if (browseDirBtn && dirInput) {
+      browseDirBtn.addEventListener("click", () => {
+        dirInput.click();
+      });
+    }
+
+    if (dirInput) {
+      dirInput.addEventListener("change", () => {
+        if (!dirInput.files || dirInput.files.length === 0) {
+          if (dirChosen) dirChosen.textContent = "Nenhum diretório selecionado";
+          if (dirSummary) dirSummary.textContent = "";
+          return;
+        }
+
+        const firstPath = dirInput.files[0].webkitRelativePath || dirInput.files[0].name;
+        const rootDirName = firstPath.split("/")[0] || "Diretório";
+        if (dirChosen) dirChosen.textContent = rootDirName;
+
+        const { eligible, ignoredCount, totalBytes } = getEligibleDirectoryFiles(dirInput.files);
+        if (dirSummary) {
+          if (eligible.length === 0) {
+            dirSummary.textContent = "Aviso: Nenhum arquivo elegível encontrado no diretório selecionado.";
+          } else {
+            dirSummary.textContent = `📁 ${eligible.length} arquivos selecionados (${formatFileSize(totalBytes)}) • ${ignoredCount} ignorados`;
+          }
+        }
       });
     }
 
@@ -786,8 +883,12 @@
         }
 
         const zapSt = await refreshZapStatus();
-        if (sourceSelect) sourceSelect.value = "workspace_path";
-        syncSastSourceFields();
+        if (sourceSelect) {
+          if (Array.from(sourceSelect.options).some((o) => o.value === "workspace_path")) {
+            sourceSelect.value = "workspace_path";
+            syncSastSourceFields();
+          }
+        }
         const pathInput = document.getElementById("workspace-subpath");
         const urlInput = document.getElementById("target-url");
         const zapAuthCheckbox = document.getElementById("zap-authorized");
@@ -851,8 +952,9 @@
   }
 
   async function submitAssessmentForm() {
-    const sourceType = document.getElementById("source-type").value;
-    const subpath = document.getElementById("workspace-subpath").value.trim();
+    const sourceType = document.getElementById("source-type") ? document.getElementById("source-type").value : "directory_upload";
+    const subpathEl = document.getElementById("workspace-subpath");
+    const subpath = subpathEl ? subpathEl.value.trim() : "app";
     const targetUrl = document.getElementById("target-url").value.trim();
     const zapModeEl = document.getElementById("zap-mode");
     if (zapModeEl) zapModeEl.value = "active";
@@ -867,18 +969,28 @@
     if (dastCard) dastCard.classList.remove("input-error-highlight");
 
     // 0. Validate SAST Artifact Presence
-    if (sourceType === "workspace_path" && !subpath) {
-      if (sastCard) sastCard.classList.add("input-error-highlight");
-      const pathInput = document.getElementById("workspace-subpath");
-      if (pathInput) pathInput.focus();
-      showFormFeedback(
-        "Artefato SAST obrigatório: Informe o Caminho Relativo no Workspace antes de iniciar a avaliação.",
-        true
-      );
-      showAlert("Informe o Caminho Relativo no Workspace para o SAST.", true);
-      return;
-    }
-    if (sourceType === "zip_upload") {
+    if (sourceType === "directory_upload") {
+      const dirInput = document.getElementById("source-directory");
+      if (!dirInput || !dirInput.files || dirInput.files.length === 0) {
+        if (sastCard) sastCard.classList.add("input-error-highlight");
+        showFormFeedback(
+          "Artefato SAST obrigatório: Selecione um diretório local com arquivos de código-fonte antes de iniciar a avaliação.",
+          true
+        );
+        showAlert("Selecione um diretório local para iniciar a avaliação.", true);
+        return;
+      }
+      const { eligible } = getEligibleDirectoryFiles(dirInput.files);
+      if (eligible.length === 0) {
+        if (sastCard) sastCard.classList.add("input-error-highlight");
+        showFormFeedback(
+          "Artefato SAST obrigatório: O diretório selecionado não contém arquivos analisáveis elegíveis.",
+          true
+        );
+        showAlert("O diretório selecionado não contém arquivos analisáveis elegíveis.", true);
+        return;
+      }
+    } else if (sourceType === "zip_upload") {
       const fileInput = document.getElementById("zip-file");
       if (!fileInput || !fileInput.files || !fileInput.files[0]) {
         if (sastCard) sastCard.classList.add("input-error-highlight");
@@ -890,6 +1002,15 @@
         showAlert("Selecione um arquivo .ZIP do código-fonte para iniciar a avaliação.", true);
         return;
       }
+    } else if (sourceType === "workspace_path" && !subpath) {
+      if (sastCard) sastCard.classList.add("input-error-highlight");
+      if (subpathEl) subpathEl.focus();
+      showFormFeedback(
+        "Artefato SAST obrigatório: Informe o Caminho Relativo no Workspace antes de iniciar a avaliação.",
+        true
+      );
+      showAlert("Informe o Caminho Relativo no Workspace para o SAST.", true);
+      return;
     }
 
     // 1. Strict Universal DAST Guardrail (US1 / Princípio IV)
@@ -950,7 +1071,30 @@
     resetStepper();
     let resp;
     try {
-      if (sourceType === "zip_upload") {
+      if (sourceType === "directory_upload") {
+        const dirInput = document.getElementById("source-directory");
+        const { eligible, totalBytes } = getEligibleDirectoryFiles(dirInput.files);
+        if (totalBytes > 300 * 1024 * 1024) {
+          showFormFeedback("O diretório selecionado excede o limite máximo de 300 MB.", true);
+          showAlert("O diretório selecionado excede o limite máximo de 300 MB.", true);
+          return;
+        }
+        if (eligible.length > 15000) {
+          showFormFeedback("O diretório selecionado excede o limite de 15.000 arquivos.", true);
+          showAlert("O diretório selecionado excede o limite de 15.000 arquivos.", true);
+          return;
+        }
+        const formData = new FormData();
+        formData.append("source_type", "directory_upload");
+        if (targetUrl) formData.append("target_url", targetUrl);
+        formData.append("zap_authorized", zapAuth ? "true" : "false");
+        formData.append("zap_mode", zapMode);
+        for (const item of eligible) {
+          formData.append("files", item.file);
+          formData.append("paths", item.relPath);
+        }
+        resp = await fetch("/api/runs/upload-directory", { method: "POST", body: formData });
+      } else if (sourceType === "zip_upload") {
         const fileInput = document.getElementById("zip-file");
         if (!fileInput || !fileInput.files || !fileInput.files[0]) {
           showFormFeedback(

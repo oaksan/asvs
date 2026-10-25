@@ -57,7 +57,7 @@ def test_ui_separates_sast_and_dast_artifact_cards() -> None:
     assert 'id="dast-artifact-card"' in html
     assert "artifact-split-grid" in html
     assert 'id="source-type"' in html
-    assert 'id="workspace-path-group"' in html
+    assert 'id="directory-upload-group"' in html or 'id="workspace-path-group"' in html
     assert 'id="zip-upload-group"' in html
     assert 'id="target-url"' in html
 

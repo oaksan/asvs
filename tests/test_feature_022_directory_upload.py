@@ -300,11 +300,11 @@ def test_ui_assets_contain_directory_picker_and_no_workspace_label():
     assert 'id="source-directory-summary"' in html
     assert "Caminho em Workspace Local" not in html
     assert 'id="workspace-subpath"' not in html
-    assert "v=022" in html
+    assert f"v={APP_UI_VERSION}" in html
 
     # app.js checks
     assert "upload-directory" in js
     assert "source-directory" in js
     assert "directory_upload" in js
-    assert APP_UI_VERSION == "022"
+    assert int(APP_UI_VERSION) >= 22
 

@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{{ page_title }}</title>
-  <link rel="stylesheet" href="/static/theme.css?v=022">
+  <link rel="stylesheet" href="/static/theme.css?v=023">
   <script type="module" src="https://unpkg.com/@fluentui/web-components@2.6.1/dist/web-components.min.js"></script>
 </head>
 <body>
@@ -160,15 +160,9 @@
                   placeholder="Ex.: http://localhost:3000 ou http://localhost:8000"
                   required
                 >
-                <small style="color:var(--colorNeutralForeground3);">
-                  Allowlist permitida: <code>{{ allowed_origins | join(', ') }}</code>. Alvos <code>localhost</code>/<code>127.0.0.1</code> são resolvidos automaticamente pelo container ZAP.
-                </small>
               </div>
 
               <input type="hidden" id="zap-mode" name="zap_mode" value="active">
-              <div style="padding:8px 12px; border-radius:var(--borderRadiusSmall); background:var(--colorNeutralBackground1); border:1px solid var(--colorNeutralStroke2); font-size:12px; color:var(--colorNeutralForeground2);">
-                <strong style="color:var(--colorNeutralForeground1);">Modo de Varredura Fixo: Active Scan (Ataque Ativo + Spider)</strong> — Cobertura dinâmica integral dos requisitos <code>V1.2.1</code> a <code>V1.2.5</code> e <code>V1.5.1</code>.
-              </div>
 
               <div class="dast-auth-container" id="dast-auth-container" style="margin-top:4px; display:flex; align-items:flex-start; gap:8px; padding:10px; border-radius:var(--borderRadiusMedium); border:1px solid var(--colorNeutralStroke1); background:var(--colorNeutralBackground1); transition:border-color 0.2s, background-color 0.2s;">
                 <input
@@ -176,16 +170,12 @@
                   id="zap-authorized"
                   name="zap_authorized"
                   aria-required="true"
-                  aria-describedby="dast-auth-hint"
                   style="width:18px; height:18px; margin-top:3px; accent-color:var(--colorBrandBackground);"
                 >
                 <div>
                   <label for="zap-authorized" style="font-weight:var(--fontWeightMedium); cursor:pointer;">
                     Declaro que possuo autorização explícita para executar testes dinâmicos (DAST / OWASP ZAP) contra a URL alvo informada acima.
                   </label>
-                  <div id="dast-auth-hint" style="font-size:12px; color:var(--colorNeutralForeground3); margin-top:2px;">
-                    Termo mandatório de conformidade legal e segurança operacional (Princípio IV). Bloqueia início de DAST sem autorização.
-                  </div>
                 </div>
               </div>
             </div>
@@ -988,7 +978,7 @@
   </dialog>
 
   <footer class="app-version" style="text-align:center; font-size:11px; color:var(--colorNeutralForeground3); padding:12px 0;">Versão {{ app_version }}</footer>
-  <script src="/static/app.js?v=022" defer></script>
+  <script src="/static/app.js?v=023" defer></script>
 </body>
 </html>
 
